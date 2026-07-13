@@ -1,0 +1,57 @@
+<ion-app>
+  <ng-container *ngIf="startupErrorMessage; else appShell">
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>PersonalTo-DO</ion-title>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="ion-padding">
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Local storage unavailable</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <p>{{ startupErrorMessage }}</p>
+          <ion-button expand="block" (click)="retryStartup()">Try Again</ion-button>
+        </ion-card-content>
+      </ion-card>
+    </ion-content>
+  </ng-container>
+
+  <ng-template #appShell>
+    <ion-menu contentId="main-content" (ionWillOpen)="loadMenuItems()">
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>PersonalTo-DO</ion-title>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content>
+      <ion-list>
+        <ion-menu-toggle auto-hide="false" *ngFor="let item of menuItems">
+          <ion-item button [routerLink]="item.url" routerDirection="root">
+            <ion-label>{{ item.label }}</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+      </ion-list>
+
+      <ion-list>
+        <ion-list-header>Manage</ion-list-header>
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button routerLink="/tasks/new" routerDirection="forward">
+            <ion-label>New Task</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+        <ion-menu-toggle auto-hide="false">
+          <ion-item button routerLink="/categories" routerDirection="forward">
+            <ion-label>Categories</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+      </ion-list>
+    </ion-content>
+    </ion-menu>
+
+    <ion-router-outlet id="main-content"></ion-router-outlet>
+  </ng-template>
+</ion-app>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PersonalTo-DO</string>
+    <string name="title_activity_main">PersonalTo-DO</string>
+    <string name="package_name">com.personaltodo.app</string>
+    <string name="custom_url_scheme">com.personaltodo.app</string>
+</resources>

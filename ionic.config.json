@@ -1,0 +1,7 @@
+{
+  "name": "personal-to-do-scaffold",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
