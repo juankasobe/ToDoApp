@@ -1,4 +1,5 @@
 import { appRoutes } from './app-routing.module';
+import { TaskCreatePage } from './tasks/pages/task-create.page';
 
 describe('appRoutes', () => {
   it('routes all tasks, uncategorized tasks, category tasks, task creation, and category management', () => {
@@ -8,8 +9,15 @@ describe('appRoutes', () => {
       'tasks/uncategorized',
       'tasks/category/:categoryId',
       'tasks/new',
+      'tasks/:taskId/edit',
       'categories',
     ]);
+  });
+
+  it('routes task edit requests to the reused task form page', () => {
+    const editRoute = appRoutes.find((route) => route.path === 'tasks/:taskId/edit');
+
+    expect(editRoute?.component).toBe(TaskCreatePage);
   });
 
   it('passes task list filter metadata to each scoped task route', () => {

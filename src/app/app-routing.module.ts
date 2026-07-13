@@ -31,6 +31,10 @@ export const appRoutes: Routes = [
     component: TaskCreatePage,
   },
   {
+    path: 'tasks/:taskId/edit',
+    component: TaskCreatePage,
+  },
+  {
     path: 'categories',
     component: CategoryManagePage,
   },

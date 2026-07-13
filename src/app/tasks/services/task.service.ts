@@ -13,6 +13,12 @@ export type CreateTaskCommand = {
   categoryId: string | null;
 };
 
+export type UpdateTaskCommand = {
+  id: string;
+  title: string;
+  categoryId: string | null;
+};
+
 @Injectable({ providedIn: 'root' })
 export class TaskService {
   private readonly repository = inject(TaskRepository);
@@ -34,6 +40,28 @@ export class TaskService {
     } catch (error) {
       if (error instanceof Error && error.message === 'category-not-found') {
         throw new Error('category-not-found');
+      }
+
+      throw error;
+    }
+  }
+
+  getById(id: string): Promise<Task> {
+    return this.repository.getById(id);
+  }
+
+  async update(command: UpdateTaskCommand): Promise<Task> {
+    const title = command.title.trim();
+
+    if (!title) {
+      throw new Error('empty-title');
+    }
+
+    try {
+      return await this.repository.update(command.id, { title, categoryId: command.categoryId });
+    } catch (error) {
+      if (error instanceof Error && (error.message === 'category-not-found' || error.message === 'task-not-found')) {
+        throw new Error(error.message);
       }
 
       throw error;

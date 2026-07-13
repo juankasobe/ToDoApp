@@ -73,6 +73,12 @@ describe('TaskListPage', () => {
     expect(page.getCategoryName('missing')).toBe('Unknown category');
   });
 
+  it('builds the edit route for an existing task without changing task actions', () => {
+    const page = createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+
+    expect(page.getTaskEditLink({ id: 'task-1' } as Task)).toBe('/tasks/task-1/edit');
+  });
+
   it('toggles completion and reloads visible tasks', async () => {
     const page = createPage({ snapshot: { data: { filterKind: 'uncategorized' }, paramMap: new Map() } as never });
     service.setCompleted.and.resolveTo({} as Task);

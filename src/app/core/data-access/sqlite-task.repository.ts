@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 
 import { SQLiteService } from '../storage/sqlite.service';
-import { CreateTaskInput, TaskListFilter, TaskRepository } from './task.repository';
+import { CreateTaskInput, TaskListFilter, TaskRepository, UpdateTaskInput } from './task.repository';
 import { createLocalId } from './local-id';
 import { SQLITE_FALSE, SQLITE_TRUE } from './sqlite-boolean';
 import { mapTaskRow, readCount } from './sqlite-row-mappers';
@@ -46,6 +46,33 @@ export class SQLiteTaskRepository implements TaskRepository {
     );
 
     return task;
+  }
+
+  async getById(id: string): Promise<Task> {
+    const db = await this.sqliteService.getDatabase();
+    const result = await db.query(
+      'SELECT id, title, completed, category_id, created_at FROM tasks WHERE id = ?',
+      [id],
+    );
+    const task = result.values?.[0];
+
+    if (!task) {
+      throw new Error('task-not-found');
+    }
+
+    return mapTaskRow(task);
+  }
+
+  async update(id: string, input: UpdateTaskInput): Promise<Task> {
+    const db = await this.sqliteService.getDatabase();
+
+    if (input.categoryId !== null) {
+      await this.assertCategoryExists(input.categoryId);
+    }
+
+    await db.run('UPDATE tasks SET title = ?, category_id = ? WHERE id = ?', [input.title, input.categoryId, id]);
+
+    return this.getById(id);
   }
 
   async setCompleted(id: string, completed: boolean): Promise<Task> {

@@ -5,6 +5,8 @@ describe('TaskRepository contract', () => {
     const repository: TaskRepository = {
       list: jasmine.createSpy('list').and.resolveTo([]),
       create: jasmine.createSpy('create'),
+      getById: jasmine.createSpy('getById'),
+      update: jasmine.createSpy('update'),
       setCompleted: jasmine.createSpy('setCompleted'),
       delete: jasmine.createSpy('delete'),
     };

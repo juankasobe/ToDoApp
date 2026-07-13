@@ -72,6 +72,10 @@ export class TaskListPage {
     return this.categories.find((category) => category.id === categoryId)?.name ?? 'Unknown category';
   }
 
+  getTaskEditLink(task: Task): string {
+    return `/tasks/${task.id}/edit`;
+  }
+
   private resolveFilter(): TaskFilter {
     const filterKind = this.route.snapshot.data['filterKind'] as RouteFilterKind | undefined;
 
