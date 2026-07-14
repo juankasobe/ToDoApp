@@ -65,6 +65,20 @@ describe('TaskListPage', () => {
     expect(page.pageTitle).toBe('Health');
   });
 
+  it('refreshes a renamed category label without changing the task category association', async () => {
+    const page = createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    categoryService.list.and.returnValues(
+      Promise.resolve([{ id: 'home', name: 'Home', createdAt: '2026-07-09T20:00:00.000Z' }]),
+      Promise.resolve([{ id: 'home', name: 'House', createdAt: '2026-07-09T20:00:00.000Z' }]),
+    );
+
+    await page.ionViewWillEnter();
+    await page.ionViewWillEnter();
+
+    expect(page.tasks[0].categoryId).toBe('home');
+    expect(page.getCategoryName('home')).toBe('House');
+  });
+
   it('falls back when a task references a missing category name', async () => {
     const page = createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
 
