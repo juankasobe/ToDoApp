@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 
 import { SQLiteTaskRepository } from './sqlite-task.repository';
 import { SQLiteService } from '../storage/sqlite.service';
+import { CATEGORY_ERROR_CODE } from '../../categories/models/category-error';
 
 type QueryResult = { values?: Record<string, unknown>[] };
 
@@ -55,7 +56,7 @@ describe('SQLiteTaskRepository', () => {
     const repository = createRepository(db);
 
     await expectAsync(repository.create({ title: 'Plan workout', categoryId: 'missing-category' }))
-      .toBeRejectedWithError('category-not-found');
+      .toBeRejectedWithError(CATEGORY_ERROR_CODE.NOT_FOUND);
     expect(db.runs.length).toBe(0);
   });
 
@@ -170,7 +171,7 @@ describe('SQLiteTaskRepository', () => {
     const repository = createRepository(db);
 
     await expectAsync(repository.update('task-1', { title: 'Plan workout', categoryId: 'missing-category' }))
-      .toBeRejectedWithError('category-not-found');
+      .toBeRejectedWithError(CATEGORY_ERROR_CODE.NOT_FOUND);
 
     expect(db.runs.length).toBe(0);
   });

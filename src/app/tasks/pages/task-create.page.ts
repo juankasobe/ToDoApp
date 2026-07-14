@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { Category } from '../../categories/models/category.model';
+import { CATEGORY_ERROR_CODE } from '../../categories/models/category-error';
 import { CategoryService } from '../../categories/services/category.service';
 import { Task } from '../models/task.model';
 import { TaskService } from '../services/task.service';
@@ -93,7 +94,7 @@ export class TaskCreatePage {
       return 'Enter a task title.';
     }
 
-    if (error instanceof Error && error.message === 'category-not-found') {
+    if (error instanceof Error && error.message === CATEGORY_ERROR_CODE.NOT_FOUND) {
       return 'Choose an existing category or leave the task uncategorized.';
     }
 

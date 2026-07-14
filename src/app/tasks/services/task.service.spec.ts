@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 
 import { TaskRepository } from '../../core/data-access/task.repository';
+import { CATEGORY_ERROR_CODE } from '../../categories/models/category-error';
 import { TaskService } from './task.service';
 
 describe('TaskService', () => {
@@ -37,10 +38,10 @@ describe('TaskService', () => {
   });
 
   it('maps repository category lookup failures to task domain errors', async () => {
-    repository.create.and.rejectWith(new Error('category-not-found'));
+    repository.create.and.rejectWith(new Error(CATEGORY_ERROR_CODE.NOT_FOUND));
 
     await expectAsync(service.create({ title: 'Plan workout', categoryId: 'missing-category' }))
-      .toBeRejectedWithError('category-not-found');
+      .toBeRejectedWithError(CATEGORY_ERROR_CODE.NOT_FOUND);
   });
 
   it('reads tasks by id through the repository', async () => {
@@ -100,10 +101,10 @@ describe('TaskService', () => {
     await expectAsync(service.update({ id: 'missing-task', title: 'Plan workout', categoryId: null }))
       .toBeRejectedWithError('task-not-found');
 
-    repository.update.and.rejectWith(new Error('category-not-found'));
+    repository.update.and.rejectWith(new Error(CATEGORY_ERROR_CODE.NOT_FOUND));
 
     await expectAsync(service.update({ id: 'task-1', title: 'Plan workout', categoryId: 'missing-category' }))
-      .toBeRejectedWithError('category-not-found');
+      .toBeRejectedWithError(CATEGORY_ERROR_CODE.NOT_FOUND);
   });
 
   it('orchestrates all, uncategorized, and category filters for task lists', async () => {

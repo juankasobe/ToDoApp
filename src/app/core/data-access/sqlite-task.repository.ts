@@ -6,6 +6,7 @@ import { createLocalId } from './local-id';
 import { SQLITE_FALSE, SQLITE_TRUE } from './sqlite-boolean';
 import { mapTaskRow, readCount } from './sqlite-row-mappers';
 import { Task } from '../../tasks/models/task.model';
+import { CATEGORY_ERROR_CODE } from '../../categories/models/category-error';
 
 @Injectable({ providedIn: 'root' })
 export class SQLiteTaskRepository implements TaskRepository {
@@ -101,7 +102,7 @@ export class SQLiteTaskRepository implements TaskRepository {
     const result = await db.query('SELECT COUNT(*) as count FROM categories WHERE id = ?', [categoryId]);
 
     if (readCount(result.values?.[0]) === 0) {
-      throw new Error('category-not-found');
+      throw new Error(CATEGORY_ERROR_CODE.NOT_FOUND);
     }
   }
 
