@@ -76,6 +76,10 @@ export class TaskListPage {
     return `/tasks/${task.id}/edit`;
   }
 
+  getPriorityLabel(task: Task): string {
+    return `Priority: ${task.priority}`;
+  }
+
   private resolveFilter(): TaskFilter {
     const filterKind = this.route.snapshot.data['filterKind'] as RouteFilterKind | undefined;
 

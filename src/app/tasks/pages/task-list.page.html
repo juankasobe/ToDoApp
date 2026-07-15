@@ -24,6 +24,7 @@
         <ion-checkbox slot="start" [checked]="task.completed" (ionChange)="toggleTask(task)"></ion-checkbox>
         <ion-label>
           <h2 [class.completed]="task.completed">{{ task.title }}</h2>
+          <p>{{ getPriorityLabel(task) }}</p>
           <p *ngIf="task.categoryId">Category: {{ getCategoryName(task.categoryId) }}</p>
           <p *ngIf="!task.categoryId">Uncategorized</p>
         </ion-label>
