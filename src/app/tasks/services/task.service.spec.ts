@@ -4,6 +4,11 @@ import { TaskRepository } from '../../core/data-access/task.repository';
 import { CATEGORY_ERROR_CODE } from '../../categories/models/category-error';
 import { TaskService } from './task.service';
 
+const createTask = (priority: 'low' | 'medium' | 'high' = 'medium') => ({
+  id: 'task-1', title: 'Buy milk', completed: false, categoryId: null,
+  createdAt: '2026-07-09T20:00:00.000Z', priority,
+});
+
 describe('TaskService', () => {
   let repository: jasmine.SpyObj<TaskRepository>;
   let service: TaskService;
@@ -17,18 +22,32 @@ describe('TaskService', () => {
   });
 
   it('trims valid titles and creates uncategorized tasks', async () => {
-    repository.create.and.resolveTo({
-      id: 'task-1',
-      title: 'Buy milk',
-      completed: false,
-      categoryId: null,
-      createdAt: '2026-07-09T20:00:00.000Z',
-    });
+    repository.create.and.resolveTo(createTask());
 
     const task = await service.create({ title: '  Buy milk  ', categoryId: null });
 
     expect(task.title).toBe('Buy milk');
-    expect(repository.create).toHaveBeenCalledWith({ title: 'Buy milk', categoryId: null });
+    expect(repository.create).toHaveBeenCalledWith({ title: 'Buy milk', categoryId: null, priority: 'medium' });
+  });
+
+  it('retains selected low and high priorities during creation', async () => {
+    repository.create.and.resolveTo(createTask('low'));
+
+    await service.create({ title: 'Buy milk', categoryId: null, priority: 'low' });
+    await service.create({ title: 'Plan workout', categoryId: null, priority: 'high' });
+
+    expect(repository.create).toHaveBeenCalledWith({ title: 'Buy milk', categoryId: null, priority: 'low' });
+    expect(repository.create).toHaveBeenCalledWith({ title: 'Plan workout', categoryId: null, priority: 'high' });
+  });
+
+  it('rejects invalid create and update priorities before repository mutation', async () => {
+    await expectAsync(service.create({ title: 'Buy milk', categoryId: null, priority: 'urgent' as any }))
+      .toBeRejectedWithError('invalid-priority');
+    await expectAsync(service.update({ id: 'task-1', title: 'Buy milk', categoryId: null, priority: 'urgent' as any }))
+      .toBeRejectedWithError('invalid-priority');
+
+    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.update).not.toHaveBeenCalled();
   });
 
   it('rejects whitespace-only task titles before calling the repository', async () => {
@@ -51,6 +70,7 @@ describe('TaskService', () => {
       completed: false,
       categoryId: 'home',
       createdAt: '2026-07-09T20:00:00.000Z',
+      priority: 'medium',
     });
 
     const task = await service.getById('task-1');
@@ -66,12 +86,30 @@ describe('TaskService', () => {
       completed: true,
       categoryId: 'errands',
       createdAt: '2026-07-09T20:00:00.000Z',
+      priority: 'medium',
     });
 
-    const task = await service.update({ id: 'task-1', title: '  Buy oat milk  ', categoryId: 'errands' });
+    const task = await service.update({ id: 'task-1', title: '  Buy oat milk  ', categoryId: 'errands', priority: 'medium' });
 
     expect(task.completed).toBeTrue();
-    expect(repository.update).toHaveBeenCalledWith('task-1', { title: 'Buy oat milk', categoryId: 'errands' });
+    expect(repository.update).toHaveBeenCalledWith('task-1', { title: 'Buy oat milk', categoryId: 'errands', priority: 'medium' });
+  });
+
+  it('preserves a stored low or high priority when an unrelated update omits priority', async () => {
+    repository.getById.and.returnValues(
+      Promise.resolve(createTask('low')),
+      Promise.resolve(createTask('high')),
+    );
+    repository.update.and.returnValues(
+      Promise.resolve(createTask('low')),
+      Promise.resolve(createTask('high')),
+    );
+
+    await service.update({ id: 'low-task', title: 'Buy oat milk', categoryId: 'errands' });
+    await service.update({ id: 'high-task', title: 'Plan workout', categoryId: null });
+
+    expect(repository.update).toHaveBeenCalledWith('low-task', { title: 'Buy oat milk', categoryId: 'errands', priority: 'low' });
+    expect(repository.update).toHaveBeenCalledWith('high-task', { title: 'Plan workout', categoryId: null, priority: 'high' });
   });
 
   it('passes a null category update command to clear task assignment', async () => {
@@ -81,12 +119,13 @@ describe('TaskService', () => {
       completed: false,
       categoryId: null,
       createdAt: '2026-07-09T20:00:00.000Z',
+      priority: 'medium',
     });
 
-    const task = await service.update({ id: 'task-1', title: 'Inbox item', categoryId: null });
+    const task = await service.update({ id: 'task-1', title: 'Inbox item', categoryId: null, priority: 'medium' });
 
     expect(task.categoryId).toBeNull();
-    expect(repository.update).toHaveBeenCalledWith('task-1', { title: 'Inbox item', categoryId: null });
+    expect(repository.update).toHaveBeenCalledWith('task-1', { title: 'Inbox item', categoryId: null, priority: 'medium' });
   });
 
   it('rejects whitespace-only update titles before calling the repository', async () => {
@@ -98,12 +137,12 @@ describe('TaskService', () => {
   it('propagates missing task and category failures during update', async () => {
     repository.update.and.rejectWith(new Error('task-not-found'));
 
-    await expectAsync(service.update({ id: 'missing-task', title: 'Plan workout', categoryId: null }))
+    await expectAsync(service.update({ id: 'missing-task', title: 'Plan workout', categoryId: null, priority: 'medium' }))
       .toBeRejectedWithError('task-not-found');
 
     repository.update.and.rejectWith(new Error(CATEGORY_ERROR_CODE.NOT_FOUND));
 
-    await expectAsync(service.update({ id: 'task-1', title: 'Plan workout', categoryId: 'missing-category' }))
+    await expectAsync(service.update({ id: 'task-1', title: 'Plan workout', categoryId: 'missing-category', priority: 'medium' }))
       .toBeRejectedWithError(CATEGORY_ERROR_CODE.NOT_FOUND);
   });
 
@@ -126,6 +165,7 @@ describe('TaskService', () => {
       completed: true,
       categoryId: null,
       createdAt: '2026-07-09T20:00:00.000Z',
+      priority: 'medium',
     });
 
     const task = await service.setCompleted('task-1', true);

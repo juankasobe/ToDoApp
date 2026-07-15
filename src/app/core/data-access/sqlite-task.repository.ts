@@ -16,7 +16,7 @@ export class SQLiteTaskRepository implements TaskRepository {
     const db = await this.sqliteService.getDatabase();
     const where = this.buildWhere(filter);
     const result = await db.query(
-      `SELECT id, title, completed, category_id, created_at
+      `SELECT id, title, completed, category_id, created_at, priority
        FROM tasks${where.clause}
        ORDER BY created_at DESC`,
       where.values,
@@ -38,12 +38,13 @@ export class SQLiteTaskRepository implements TaskRepository {
       completed: false,
       categoryId: input.categoryId,
       createdAt: new Date().toISOString(),
+      priority: input.priority,
     };
 
     await db.run(
-      `INSERT INTO tasks (id, title, completed, category_id, created_at)
-       VALUES (?, ?, ?, ?, ?)`,
-      [task.id, task.title, SQLITE_FALSE, task.categoryId, task.createdAt],
+      `INSERT INTO tasks (id, title, completed, category_id, created_at, priority)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [task.id, task.title, SQLITE_FALSE, task.categoryId, task.createdAt, task.priority],
     );
 
     return task;
@@ -52,7 +53,7 @@ export class SQLiteTaskRepository implements TaskRepository {
   async getById(id: string): Promise<Task> {
     const db = await this.sqliteService.getDatabase();
     const result = await db.query(
-      'SELECT id, title, completed, category_id, created_at FROM tasks WHERE id = ?',
+      'SELECT id, title, completed, category_id, created_at, priority FROM tasks WHERE id = ?',
       [id],
     );
     const task = result.values?.[0];
@@ -71,7 +72,7 @@ export class SQLiteTaskRepository implements TaskRepository {
       await this.assertCategoryExists(input.categoryId);
     }
 
-    await db.run('UPDATE tasks SET title = ?, category_id = ? WHERE id = ?', [input.title, input.categoryId, id]);
+    await db.run('UPDATE tasks SET title = ?, category_id = ?, priority = ? WHERE id = ?', [input.title, input.categoryId, input.priority, id]);
 
     return this.getById(id);
   }
@@ -80,7 +81,7 @@ export class SQLiteTaskRepository implements TaskRepository {
     const db = await this.sqliteService.getDatabase();
     await db.run('UPDATE tasks SET completed = ? WHERE id = ?', [completed ? SQLITE_TRUE : SQLITE_FALSE, id]);
     const result = await db.query(
-      'SELECT id, title, completed, category_id, created_at FROM tasks WHERE id = ?',
+      'SELECT id, title, completed, category_id, created_at, priority FROM tasks WHERE id = ?',
       [id],
     );
     const task = result.values?.[0];
