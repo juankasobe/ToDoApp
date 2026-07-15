@@ -20,6 +20,7 @@ describe('TaskListPage', () => {
         completed: false,
         categoryId: 'home',
         createdAt: '2026-07-09T20:00:00.000Z',
+        priority: 'medium',
       },
     ]);
     categoryService.list.and.resolveTo([

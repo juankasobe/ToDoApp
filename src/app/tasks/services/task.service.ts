@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 
-import { Task } from '../models/task.model';
+import { DEFAULT_TASK_PRIORITY, isTaskPriority, Task, TaskPriority } from '../models/task.model';
 import { CATEGORY_ERROR_CODE } from '../../categories/models/category-error';
 import { TaskListFilter, TaskRepository } from '../../core/data-access/task.repository';
 
@@ -12,12 +12,14 @@ export type TaskFilter =
 export type CreateTaskCommand = {
   title: string;
   categoryId: string | null;
+  priority?: TaskPriority;
 };
 
 export type UpdateTaskCommand = {
   id: string;
   title: string;
   categoryId: string | null;
+  priority?: TaskPriority;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -37,7 +39,7 @@ export class TaskService {
     }
 
     try {
-      return await this.repository.create({ title, categoryId: command.categoryId });
+      return await this.repository.create({ title, categoryId: command.categoryId, priority: this.resolvePriority(command.priority) });
     } catch (error) {
       if (error instanceof Error && error.message === CATEGORY_ERROR_CODE.NOT_FOUND) {
         throw new Error(CATEGORY_ERROR_CODE.NOT_FOUND);
@@ -59,7 +61,11 @@ export class TaskService {
     }
 
     try {
-      return await this.repository.update(command.id, { title, categoryId: command.categoryId });
+      return await this.repository.update(command.id, {
+        title,
+        categoryId: command.categoryId,
+        priority: await this.resolveUpdatePriority(command.id, command.priority),
+      });
     } catch (error) {
       if (error instanceof Error && (error.message === CATEGORY_ERROR_CODE.NOT_FOUND || error.message === 'task-not-found')) {
         throw new Error(error.message);
@@ -87,5 +93,25 @@ export class TaskService {
     }
 
     return { categoryId: filter.categoryId };
+  }
+
+  private resolvePriority(priority: unknown): TaskPriority {
+    if (priority === undefined) {
+      return DEFAULT_TASK_PRIORITY;
+    }
+
+    if (!isTaskPriority(priority)) {
+      throw new Error('invalid-priority');
+    }
+
+    return priority;
+  }
+
+  private async resolveUpdatePriority(id: string, priority: unknown): Promise<TaskPriority> {
+    if (priority === undefined) {
+      return (await this.repository.getById(id)).priority;
+    }
+
+    return this.resolvePriority(priority);
   }
 }

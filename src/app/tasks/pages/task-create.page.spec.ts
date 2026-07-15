@@ -56,6 +56,7 @@ describe('TaskCreatePage', () => {
       completed: false,
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
+      priority: 'medium',
     });
     page.title = '  Plan workout  ';
     page.categoryId = 'health';
@@ -85,6 +86,7 @@ describe('TaskCreatePage', () => {
       completed: true,
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
+      priority: 'medium',
     });
 
     await page.ionViewWillEnter();
@@ -106,6 +108,7 @@ describe('TaskCreatePage', () => {
       completed: true,
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
+      priority: 'medium',
     });
     taskService.update.and.resolveTo({
       id: 'task-1',
@@ -113,6 +116,7 @@ describe('TaskCreatePage', () => {
       completed: true,
       categoryId: null,
       createdAt: '2026-07-09T20:00:00.000Z',
+      priority: 'medium',
     });
 
     await page.ionViewWillEnter();
@@ -142,6 +146,7 @@ describe('TaskCreatePage', () => {
       completed: false,
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
+      priority: 'medium',
     });
     taskService.update.and.rejectWith(new Error(CATEGORY_ERROR_CODE.NOT_FOUND));
 
@@ -160,6 +165,7 @@ describe('TaskCreatePage', () => {
       completed: true,
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
+      priority: 'medium',
     });
 
     await page.ionViewWillEnter();
