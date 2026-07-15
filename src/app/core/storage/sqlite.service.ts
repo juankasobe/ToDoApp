@@ -5,9 +5,12 @@ import {
   SQLiteConnection,
   SQLiteDBConnection,
 } from '@capacitor-community/sqlite';
+import { DEFAULT_TASK_PRIORITY_SQL, TASK_PRIORITY_SQL_VALUES } from '../../tasks/models/task.model';
 
 const DATABASE_NAME = 'personal_to_do';
 const DATABASE_VERSION = 1;
+const TASK_PRIORITY_INSERT_GUARD = 'tasks_priority_insert_guard';
+const TASK_PRIORITY_UPDATE_GUARD = 'tasks_priority_update_guard';
 
 @Injectable()
 export class SQLiteService {
@@ -58,10 +61,38 @@ export class SQLiteService {
         completed INTEGER NOT NULL DEFAULT 0,
         category_id TEXT NULL,
         created_at TEXT NOT NULL,
+        priority TEXT NOT NULL DEFAULT ${DEFAULT_TASK_PRIORITY_SQL} CHECK (priority IN (${TASK_PRIORITY_SQL_VALUES})),
         FOREIGN KEY (category_id) REFERENCES categories(id)
       );
 
       CREATE INDEX IF NOT EXISTS idx_tasks_category_id ON tasks(category_id);
+    `);
+
+    const columns = await db.query('PRAGMA table_info(tasks)');
+    const hasPriority = columns.values?.some((column) => column['name'] === 'priority');
+
+    if (!hasPriority) {
+      await db.execute(`ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT ${DEFAULT_TASK_PRIORITY_SQL}`);
+    }
+
+    await db.execute(`UPDATE tasks
+      SET priority = ${DEFAULT_TASK_PRIORITY_SQL}
+      WHERE priority IS NULL OR priority NOT IN (${TASK_PRIORITY_SQL_VALUES})`);
+
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS ${TASK_PRIORITY_INSERT_GUARD}
+      BEFORE INSERT ON tasks
+      FOR EACH ROW WHEN NEW.priority IS NULL OR NEW.priority NOT IN (${TASK_PRIORITY_SQL_VALUES})
+      BEGIN
+        SELECT RAISE(ABORT, 'invalid-task-priority');
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS ${TASK_PRIORITY_UPDATE_GUARD}
+      BEFORE UPDATE OF priority ON tasks
+      FOR EACH ROW WHEN NEW.priority IS NULL OR NEW.priority NOT IN (${TASK_PRIORITY_SQL_VALUES})
+      BEGIN
+        SELECT RAISE(ABORT, 'invalid-task-priority');
+      END;
     `);
   }
 
@@ -70,14 +101,27 @@ export class SQLiteService {
       return this.database;
     }
 
-    const existingConnection = await this.sqlite.isConnection(DATABASE_NAME, false);
-    this.database = existingConnection.result
-      ? await this.sqlite.retrieveConnection(DATABASE_NAME, false)
-      : await this.sqlite.createConnection(DATABASE_NAME, false, 'no-encryption', DATABASE_VERSION, false);
+    let database: SQLiteDBConnection | undefined;
 
-    await this.database.open();
-    await this.applySchema(this.database);
+    try {
+      const existingConnection = await this.sqlite.isConnection(DATABASE_NAME, false);
+      database = existingConnection.result
+        ? await this.sqlite.retrieveConnection(DATABASE_NAME, false)
+        : await this.sqlite.createConnection(DATABASE_NAME, false, 'no-encryption', DATABASE_VERSION, false);
 
-    return this.database;
+      this.database = database;
+      await database.open();
+      await this.applySchema(database);
+
+      return database;
+    } catch (error) {
+      this.database = undefined;
+
+      if (database) {
+        await this.sqlite.closeConnection(DATABASE_NAME, false).catch(() => undefined);
+      }
+
+      throw error;
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Task } from '../../tasks/models/task.model';
+import { Task, TaskPriority } from '../../tasks/models/task.model';
 
 export type TaskListFilter = {
   categoryId?: string | null;
@@ -7,11 +7,13 @@ export type TaskListFilter = {
 export type CreateTaskInput = {
   title: string;
   categoryId: string | null;
+  priority: TaskPriority;
 };
 
 export type UpdateTaskInput = {
   title: string;
   categoryId: string | null;
+  priority: TaskPriority;
 };
 
 export abstract class TaskRepository {
