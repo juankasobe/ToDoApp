@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 
 import { Task } from '../models/task.model';
+import { CATEGORY_ERROR_CODE } from '../../categories/models/category-error';
 import { TaskListFilter, TaskRepository } from '../../core/data-access/task.repository';
 
 export type TaskFilter =
@@ -38,8 +39,8 @@ export class TaskService {
     try {
       return await this.repository.create({ title, categoryId: command.categoryId });
     } catch (error) {
-      if (error instanceof Error && error.message === 'category-not-found') {
-        throw new Error('category-not-found');
+      if (error instanceof Error && error.message === CATEGORY_ERROR_CODE.NOT_FOUND) {
+        throw new Error(CATEGORY_ERROR_CODE.NOT_FOUND);
       }
 
       throw error;
@@ -60,7 +61,7 @@ export class TaskService {
     try {
       return await this.repository.update(command.id, { title, categoryId: command.categoryId });
     } catch (error) {
-      if (error instanceof Error && (error.message === 'category-not-found' || error.message === 'task-not-found')) {
+      if (error instanceof Error && (error.message === CATEGORY_ERROR_CODE.NOT_FOUND || error.message === 'task-not-found')) {
         throw new Error(error.message);
       }
 

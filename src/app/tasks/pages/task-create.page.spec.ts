@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { CategoryService } from '../../categories/services/category.service';
+import { CATEGORY_ERROR_CODE } from '../../categories/models/category-error';
 import { TaskService } from '../services/task.service';
 import { TaskCreatePage } from './task-create.page';
 
@@ -142,7 +143,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
     });
-    taskService.update.and.rejectWith(new Error('category-not-found'));
+    taskService.update.and.rejectWith(new Error(CATEGORY_ERROR_CODE.NOT_FOUND));
 
     await page.ionViewWillEnter();
     await page.save();
