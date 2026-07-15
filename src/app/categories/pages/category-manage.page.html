@@ -14,15 +14,24 @@
   </ion-item>
 
   <ion-note color="danger" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
+  <ion-button *ngIf="canRetryCategoryLoad" fill="clear" (click)="retryCategoryLoad()">Retry</ion-button>
   <ion-button expand="block" (click)="createCategory()">Save Category</ion-button>
 
   <ion-list>
     <ion-list-header>Categories</ion-list-header>
     <ion-item-sliding *ngFor="let category of categories">
       <ion-item>
-        <ion-label>{{ category.name }}</ion-label>
+        <ion-label *ngIf="editingCategoryId !== category.id">{{ category.name }}</ion-label>
+        <ion-input
+          *ngIf="editingCategoryId === category.id"
+          [(ngModel)]="editingName"
+          aria-label="Category name"
+        ></ion-input>
+        <ion-button *ngIf="editingCategoryId === category.id" fill="clear" aria-label="Save category edit" (click)="saveEditing()">Save</ion-button>
+        <ion-button *ngIf="editingCategoryId === category.id" fill="clear" aria-label="Cancel category edit" (click)="cancelEditing()">Cancel</ion-button>
       </ion-item>
       <ion-item-options side="end">
+        <ion-item-option *ngIf="editingCategoryId !== category.id" [attr.aria-label]="'Edit category ' + category.name" (click)="startEditing(category)">Edit</ion-item-option>
         <ion-item-option color="danger" (click)="deleteCategory(category.id)">Delete</ion-item-option>
       </ion-item-options>
     </ion-item-sliding>
