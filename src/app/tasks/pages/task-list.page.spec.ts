@@ -1,5 +1,7 @@
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
+import { IonicModule } from '@ionic/angular';
 
 import { CategoryService } from '../../categories/services/category.service';
 import { Task } from '../models/task.model';
@@ -29,12 +31,15 @@ describe('TaskListPage', () => {
     ]);
 
     TestBed.configureTestingModule({
+      declarations: [TaskListPage],
+      imports: [IonicModule.forRoot()],
       providers: [
         TaskListPage,
         { provide: TaskService, useValue: service },
         { provide: CategoryService, useValue: categoryService },
         { provide: ActivatedRoute, useValue: route },
       ],
+      schemas: [CUSTOM_ELEMENTS_SCHEMA],
     });
 
     return TestBed.inject(TaskListPage);
@@ -50,6 +55,41 @@ describe('TaskListPage', () => {
     expect(page.tasks.length).toBe(1);
     expect(page.pageTitle).toBe('All Tasks');
     expect(page.getCategoryName('home')).toBe('Home');
+    expect(page.getPriorityLabel(page.tasks[0])).toBe('Priority: medium');
+  });
+
+  it('retains the service newest-first order while exposing every priority label', async () => {
+    const page = createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    service.list.and.resolveTo([
+      {
+        id: 'new-low', title: 'Newest', completed: false, categoryId: null,
+        createdAt: '2026-07-10T20:00:00.000Z', priority: 'low',
+      },
+      {
+        id: 'old-high', title: 'Older', completed: false, categoryId: null,
+        createdAt: '2026-07-09T20:00:00.000Z', priority: 'high',
+      },
+    ]);
+
+    await page.ionViewWillEnter();
+
+    expect(page.tasks.map((task) => task.id)).toEqual(['new-low', 'old-high']);
+    expect(page.tasks.map((task) => page.getPriorityLabel(task))).toEqual(['Priority: low', 'Priority: high']);
+  });
+
+  it('renders each task priority in the visible task list', async () => {
+    const page = createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    service.list.and.resolveTo([
+      { id: 'low', title: 'Low', completed: false, categoryId: null, createdAt: '2026-07-10T20:00:00.000Z', priority: 'low' },
+      { id: 'high', title: 'High', completed: false, categoryId: null, createdAt: '2026-07-09T20:00:00.000Z', priority: 'high' },
+    ]);
+    const fixture = TestBed.createComponent(TaskListPage);
+    fixture.componentInstance.tasks = page.tasks;
+    await fixture.componentInstance.ionViewWillEnter();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Priority: low');
+    expect(fixture.nativeElement.textContent).toContain('Priority: high');
   });
 
   it('loads category-scoped tasks from the selected route category id', async () => {

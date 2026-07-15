@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Category } from '../../categories/models/category.model';
 import { CATEGORY_ERROR_CODE } from '../../categories/models/category-error';
 import { CategoryService } from '../../categories/services/category.service';
-import { Task } from '../models/task.model';
+import { DEFAULT_TASK_PRIORITY, Task, TaskPriority, TASK_PRIORITIES } from '../models/task.model';
 import { TaskService } from '../services/task.service';
 
 @Component({
@@ -16,8 +16,11 @@ import { TaskService } from '../services/task.service';
 export class TaskCreatePage {
   title = '';
   categoryId: string | null = null;
+  priority: TaskPriority = DEFAULT_TASK_PRIORITY;
+  readonly taskPriorities = TASK_PRIORITIES;
   categories: Category[] = [];
   errorMessage = '';
+  canRetryCategoryLoad = false;
   editTaskId: string | null = null;
   currentTask: Task | null = null;
 
@@ -43,22 +46,39 @@ export class TaskCreatePage {
 
     if (!taskId) {
       this.resetCreateState();
-      this.categories = await this.categoryService.list();
+      await this.loadCategories();
       return;
     }
 
     this.editTaskId = taskId;
     this.currentTask = null;
+    this.title = '';
+    this.categoryId = null;
+    this.priority = DEFAULT_TASK_PRIORITY;
     this.errorMessage = '';
-    this.categories = await this.categoryService.list();
+    if (!await this.loadCategories()) {
+      return;
+    }
 
+    await this.loadTask(taskId);
+  }
+
+  async retryCategoryLoad(): Promise<void> {
+    if (await this.loadCategories() && this.editTaskId) {
+      await this.loadTask(this.editTaskId);
+    }
+  }
+
+  private async loadTask(taskId: string): Promise<void> {
     try {
       this.currentTask = await this.taskService.getById(taskId);
       this.title = this.currentTask.title;
       this.categoryId = this.currentTask.categoryId;
+      this.priority = this.currentTask.priority;
     } catch (error) {
       this.title = '';
       this.categoryId = null;
+      this.priority = DEFAULT_TASK_PRIORITY;
       this.errorMessage = this.toErrorMessage(error);
     }
   }
@@ -68,11 +88,17 @@ export class TaskCreatePage {
 
     try {
       if (this.editTaskId) {
-        await this.taskService.update({ id: this.editTaskId, title: this.title, categoryId: this.categoryId });
+        await this.taskService.update({
+          id: this.editTaskId,
+          title: this.title,
+          categoryId: this.categoryId,
+          priority: this.priority,
+        });
       } else {
-        await this.taskService.create({ title: this.title, categoryId: this.categoryId });
+        await this.taskService.create({ title: this.title, categoryId: this.categoryId, priority: this.priority });
         this.title = '';
         this.categoryId = null;
+        this.priority = DEFAULT_TASK_PRIORITY;
       }
 
       await this.router.navigateByUrl('/tasks');
@@ -84,9 +110,26 @@ export class TaskCreatePage {
   private resetCreateState(): void {
     this.title = '';
     this.categoryId = null;
+    this.priority = DEFAULT_TASK_PRIORITY;
     this.errorMessage = '';
+    this.canRetryCategoryLoad = false;
     this.editTaskId = null;
     this.currentTask = null;
+  }
+
+  private async loadCategories(): Promise<boolean> {
+    this.errorMessage = '';
+    this.canRetryCategoryLoad = false;
+
+    try {
+      this.categories = await this.categoryService.list();
+      return true;
+    } catch (error) {
+      console.error('Task category list load failed.', error);
+      this.errorMessage = 'Categories could not be loaded. Try again.';
+      this.canRetryCategoryLoad = true;
+      return false;
+    }
   }
 
   private toErrorMessage(error: unknown): string {

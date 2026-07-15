@@ -23,7 +23,19 @@
     </ion-select>
   </ion-item>
 
+  <ion-item>
+    <ion-label position="stacked">Priority</ion-label>
+    <ion-select id="priority-select" [(ngModel)]="priority" aria-label="Priority">
+      <ion-select-option *ngFor="let priorityOption of taskPriorities" [value]="priorityOption">
+        {{ priorityOption }}
+      </ion-select-option>
+    </ion-select>
+  </ion-item>
+
   <ion-note color="danger" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
+  <ion-button *ngIf="canRetryCategoryLoad" fill="clear" aria-label="Retry category loading" (click)="retryCategoryLoad()">
+    Retry
+  </ion-button>
 
   <ion-button expand="block" (click)="save()">{{ saveButtonLabel }}</ion-button>
 </ion-content>
