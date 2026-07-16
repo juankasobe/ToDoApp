@@ -41,14 +41,15 @@ describe('SQLiteTaskRepository', () => {
     const db = new FakeDatabase();
     const repository = createRepository(db);
 
-    const task = await repository.create({ title: 'Buy milk', categoryId: null, priority: 'low' });
+    const task = await repository.create({ title: 'Buy milk', categoryId: null, priority: 'low', dueDate: '2026-07-15' });
 
     expect(task.title).toBe('Buy milk');
     expect(task.completed).toBeFalse();
     expect(task.categoryId).toBeNull();
     expect(task.priority).toBe('low');
+    expect(task.dueDate).toBe('2026-07-15');
     expect(db.runs[0].statement).toContain('INSERT INTO tasks');
-    expect(db.runs[0].values).toEqual([task.id, 'Buy milk', 0, null, task.createdAt, 'low']);
+    expect(db.runs[0].values).toEqual([task.id, 'Buy milk', 0, null, task.createdAt, 'low', '2026-07-15']);
   });
 
   it('rejects a non-null category id when the category is missing', async () => {
@@ -56,7 +57,7 @@ describe('SQLiteTaskRepository', () => {
     db.queueQueryResult({ values: [{ count: 0 }] });
     const repository = createRepository(db);
 
-    await expectAsync(repository.create({ title: 'Plan workout', categoryId: 'missing-category', priority: 'medium' }))
+    await expectAsync(repository.create({ title: 'Plan workout', categoryId: 'missing-category', priority: 'medium', dueDate: null }))
       .toBeRejectedWithError(CATEGORY_ERROR_CODE.NOT_FOUND);
     expect(db.runs.length).toBe(0);
   });
@@ -65,7 +66,7 @@ describe('SQLiteTaskRepository', () => {
     const db = new FakeDatabase();
     db.queueQueryResult({
       values: [
-        { id: 'task-1', title: 'Plan workout', completed: 1, category_id: 'health', created_at: '2026-07-09T20:00:00.000Z', priority: 'high' },
+        { id: 'task-1', title: 'Plan workout', completed: 1, category_id: 'health', created_at: '2026-07-09T20:00:00.000Z', priority: 'high', due_date: '2026-07-15' },
       ],
     });
     const repository = createRepository(db);
@@ -73,11 +74,12 @@ describe('SQLiteTaskRepository', () => {
     const tasks = await repository.list({ categoryId: 'health' });
 
     expect(tasks).toEqual([
-      { id: 'task-1', title: 'Plan workout', completed: true, categoryId: 'health', createdAt: '2026-07-09T20:00:00.000Z', priority: 'high' },
+      { id: 'task-1', title: 'Plan workout', completed: true, categoryId: 'health', createdAt: '2026-07-09T20:00:00.000Z', priority: 'high', dueDate: '2026-07-15' },
     ]);
     expect(db.queries[0].statement).toContain('WHERE category_id = ?');
     expect(db.queries[0].values).toEqual(['health']);
     expect(db.queries[0].statement).toContain('priority');
+    expect(db.queries[0].statement).toContain('due_date');
     expect(db.queries[0].statement).toContain('ORDER BY created_at DESC');
   });
 
@@ -85,8 +87,8 @@ describe('SQLiteTaskRepository', () => {
     const db = new FakeDatabase();
     db.queueQueryResult({
       values: [
-        { id: 'newest-high', title: 'Plan workout', completed: 0, category_id: null, created_at: '2026-07-10T20:00:00.000Z', priority: 'high' },
-        { id: 'middle-low', title: 'Buy milk', completed: 1, category_id: 'home', created_at: '2026-07-09T20:00:00.000Z', priority: 'low' },
+        { id: 'newest-high', title: 'Plan workout', completed: 0, category_id: null, created_at: '2026-07-10T20:00:00.000Z', priority: 'high', due_date: '2026-07-16' },
+        { id: 'middle-low', title: 'Buy milk', completed: 1, category_id: 'home', created_at: '2026-07-09T20:00:00.000Z', priority: 'low', due_date: null },
         { id: 'oldest-medium', title: 'Inbox item', completed: 0, category_id: null, created_at: '2026-07-08T20:00:00.000Z', priority: 'medium' },
       ],
     });
@@ -94,10 +96,10 @@ describe('SQLiteTaskRepository', () => {
 
     const tasks = await repository.list();
 
-    expect(tasks.map((task) => [task.id, task.priority])).toEqual([
-      ['newest-high', 'high'],
-      ['middle-low', 'low'],
-      ['oldest-medium', 'medium'],
+    expect(tasks.map((task) => [task.id, task.priority, task.dueDate])).toEqual([
+      ['newest-high', 'high', '2026-07-16'],
+      ['middle-low', 'low', null],
+      ['oldest-medium', 'medium', null],
     ]);
     expect(db.queries[0].statement).toContain('ORDER BY created_at DESC');
   });
@@ -114,7 +116,7 @@ describe('SQLiteTaskRepository', () => {
     const tasks = await repository.list({ categoryId: null });
 
     expect(tasks).toEqual([
-      { id: 'task-2', title: 'Inbox item', completed: false, categoryId: null, createdAt: '2026-07-09T21:00:00.000Z', priority: 'medium' },
+      { id: 'task-2', title: 'Inbox item', completed: false, categoryId: null, createdAt: '2026-07-09T21:00:00.000Z', priority: 'medium', dueDate: null },
     ]);
     expect(db.queries[0].statement).toContain('WHERE category_id IS NULL');
     expect(db.queries[0].values).toEqual([]);
@@ -138,6 +140,7 @@ describe('SQLiteTaskRepository', () => {
       categoryId: 'home',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'low',
+      dueDate: null,
     });
     expect(db.queries[0].statement).toContain('WHERE id = ?');
     expect(db.queries[0].values).toEqual(['task-1']);
@@ -161,7 +164,7 @@ describe('SQLiteTaskRepository', () => {
     });
     const repository = createRepository(db);
 
-    const updated = await repository.update('task-1', { title: 'Buy oat milk', categoryId: 'errands', priority: 'high' });
+    const updated = await repository.update('task-1', { title: 'Buy oat milk', categoryId: 'errands', priority: 'high', dueDate: '2026-07-20' });
 
     expect(updated).toEqual({
       id: 'task-1',
@@ -170,9 +173,10 @@ describe('SQLiteTaskRepository', () => {
       categoryId: 'errands',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'high',
+      dueDate: null,
     });
     expect(db.runs[0].statement).toContain('UPDATE tasks');
-    expect(db.runs[0].values).toEqual(['Buy oat milk', 'errands', 'high', 'task-1']);
+    expect(db.runs[0].values).toEqual(['Buy oat milk', 'errands', 'high', '2026-07-20', 'task-1']);
   });
 
   it('clears the category without validating a null category id', async () => {
@@ -184,11 +188,27 @@ describe('SQLiteTaskRepository', () => {
     });
     const repository = createRepository(db);
 
-    const updated = await repository.update('task-2', { title: 'Inbox item', categoryId: null, priority: 'medium' });
+    const updated = await repository.update('task-2', { title: 'Inbox item', categoryId: null, priority: 'medium', dueDate: null });
 
     expect(updated.categoryId).toBeNull();
-    expect(db.queries[0].statement).toContain('SELECT id, title, completed, category_id, created_at, priority FROM tasks WHERE id = ?');
-    expect(db.runs[0].values).toEqual(['Inbox item', null, 'medium', 'task-2']);
+    expect(db.queries[0].statement).toContain('SELECT id, title, completed, category_id, created_at, priority, due_date FROM tasks WHERE id = ?');
+    expect(db.runs[0].values).toEqual(['Inbox item', null, 'medium', null, 'task-2']);
+  });
+
+  it('preserves a stored due date when an update omits it', async () => {
+    const db = new FakeDatabase();
+    db.queueQueryResult({
+      values: [
+        { id: 'task-3', title: 'Pay bill', completed: 0, category_id: null, created_at: '2026-07-09T21:00:00.000Z', priority: 'high', due_date: '2026-07-20' },
+      ],
+    });
+    const repository = createRepository(db);
+
+    const updated = await repository.update('task-3', { title: 'Pay bill', categoryId: null, priority: 'high' });
+
+    expect(updated.dueDate).toBe('2026-07-20');
+    expect(db.runs[0].statement).not.toContain('due_date');
+    expect(db.runs[0].values).toEqual(['Pay bill', null, 'high', 'task-3']);
   });
 
   it('rejects a missing category before mutating a task', async () => {
@@ -196,7 +216,7 @@ describe('SQLiteTaskRepository', () => {
     db.queueQueryResult({ values: [{ count: 0 }] });
     const repository = createRepository(db);
 
-    await expectAsync(repository.update('task-1', { title: 'Plan workout', categoryId: 'missing-category', priority: 'medium' }))
+    await expectAsync(repository.update('task-1', { title: 'Plan workout', categoryId: 'missing-category', priority: 'medium', dueDate: null }))
       .toBeRejectedWithError(CATEGORY_ERROR_CODE.NOT_FOUND);
 
     expect(db.runs.length).toBe(0);
@@ -207,7 +227,7 @@ describe('SQLiteTaskRepository', () => {
     db.queueQueryResult({ values: [] });
     const repository = createRepository(db);
 
-    await expectAsync(repository.update('missing-task', { title: 'Missing', categoryId: null, priority: 'medium' }))
+    await expectAsync(repository.update('missing-task', { title: 'Missing', categoryId: null, priority: 'medium', dueDate: null }))
       .toBeRejectedWithError('task-not-found');
 
     expect(db.runs[0].statement).toContain('UPDATE tasks');

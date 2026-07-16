@@ -6,7 +6,7 @@ import { TaskService } from './task.service';
 
 const createTask = (priority: 'low' | 'medium' | 'high' = 'medium') => ({
   id: 'task-1', title: 'Buy milk', completed: false, categoryId: null,
-  createdAt: '2026-07-09T20:00:00.000Z', priority,
+  createdAt: '2026-07-09T20:00:00.000Z', priority, dueDate: null,
 });
 
 describe('TaskService', () => {
@@ -71,6 +71,7 @@ describe('TaskService', () => {
       categoryId: 'home',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     const task = await service.getById('task-1');
@@ -87,6 +88,7 @@ describe('TaskService', () => {
       categoryId: 'errands',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     const task = await service.update({ id: 'task-1', title: '  Buy oat milk  ', categoryId: 'errands', priority: 'medium' });
@@ -120,6 +122,7 @@ describe('TaskService', () => {
       categoryId: null,
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     const task = await service.update({ id: 'task-1', title: 'Inbox item', categoryId: null, priority: 'medium' });
@@ -166,6 +169,7 @@ describe('TaskService', () => {
       categoryId: null,
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     const task = await service.setCompleted('task-1', true);
