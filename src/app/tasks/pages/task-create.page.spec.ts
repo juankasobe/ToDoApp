@@ -66,6 +66,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
     page.title = '  Plan workout  ';
     page.categoryId = 'health';
@@ -88,6 +89,7 @@ describe('TaskCreatePage', () => {
       categoryId: null,
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'high',
+      dueDate: null,
     });
     page.title = 'Plan workout';
     page.priority = 'high';
@@ -104,7 +106,7 @@ describe('TaskCreatePage', () => {
   it('renders canonical priority options, defaults to medium, and saves a selected priority', async () => {
     taskService.create.and.resolveTo({
       id: 'task-1', title: 'Plan workout', completed: false, categoryId: null,
-      createdAt: '2026-07-09T20:00:00.000Z', priority: 'high',
+      createdAt: '2026-07-09T20:00:00.000Z', priority: 'high', dueDate: null,
     });
     const fixture = TestBed.createComponent(TaskCreatePage);
     const component = fixture.componentInstance;
@@ -152,6 +154,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     await page.ionViewWillEnter();
@@ -175,6 +178,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
     taskService.update.and.resolveTo({
       id: 'task-1',
@@ -183,6 +187,7 @@ describe('TaskCreatePage', () => {
       categoryId: null,
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     await page.ionViewWillEnter();
@@ -208,6 +213,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'high',
+      dueDate: null,
     });
     taskService.update.and.resolveTo({
       id: 'task-1',
@@ -216,6 +222,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'low',
+      dueDate: null,
     });
 
     await page.ionViewWillEnter();
@@ -236,7 +243,7 @@ describe('TaskCreatePage', () => {
     paramMap.set('taskId', 'task-1');
     taskService.getById.and.resolveTo({
       id: 'task-1', title: 'Buy milk', completed: false, categoryId: 'health',
-      createdAt: '2026-07-09T20:00:00.000Z', priority: 'high',
+      createdAt: '2026-07-09T20:00:00.000Z', priority: 'high', dueDate: null,
     });
     taskService.update.and.resolveTo({} as never);
     const fixture = TestBed.createComponent(TaskCreatePage);
@@ -314,6 +321,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
     taskService.update.and.rejectWith(new Error(CATEGORY_ERROR_CODE.NOT_FOUND));
 
@@ -333,6 +341,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     await page.ionViewWillEnter();
