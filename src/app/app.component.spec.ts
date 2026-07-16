@@ -1,11 +1,16 @@
-import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 import { Platform } from '@ionic/angular';
 import { Subject } from 'rxjs';
 
 import { AppComponent } from './app.component';
 import { CategoryService } from './categories/services/category.service';
 import { SQLiteService } from './core/storage/sqlite.service';
+
+@Component({ standalone: false, template: '' })
+class RouteStubComponent {}
 
 describe('AppComponent', () => {
   let categoryService: jasmine.SpyObj<CategoryService>;
@@ -27,7 +32,16 @@ describe('AppComponent', () => {
     ]);
 
     await TestBed.configureTestingModule({
-      declarations: [AppComponent],
+      declarations: [AppComponent, RouteStubComponent],
+      imports: [
+        RouterTestingModule.withRoutes([
+          { path: 'tasks', component: RouteStubComponent },
+          { path: 'tasks/uncategorized', component: RouteStubComponent },
+          { path: 'tasks/category/:categoryId', component: RouteStubComponent },
+          { path: 'tasks/new', component: RouteStubComponent },
+          { path: 'categories', component: RouteStubComponent },
+        ]),
+      ],
       providers: [
         { provide: Platform, useValue: { ready: () => Promise.resolve() } },
         { provide: SQLiteService, useValue: sqliteService },
@@ -54,6 +68,75 @@ describe('AppComponent', () => {
       { label: 'Uncategorized', url: '/tasks/uncategorized' },
       { label: 'Health', url: '/tasks/category/health' },
     ]);
+  });
+
+  it('marks each fixed destination active only for its exact route', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const router = TestBed.inject(Router);
+
+    await renderMenuAt(fixture, router, '/tasks/new');
+
+    expect(menuItemByLabel(fixture, 'New Task').classList).toContain('menu-link--active');
+    expect(menuItemByLabel(fixture, 'Categories').classList).not.toContain('menu-link--active');
+    expect(menuItemByLabel(fixture, 'All Tasks').classList).not.toContain('menu-link--active');
+
+    await renderMenuAt(fixture, router, '/categories');
+
+    expect(menuItemByLabel(fixture, 'Categories').classList).toContain('menu-link--active');
+    expect(menuItemByLabel(fixture, 'New Task').classList).not.toContain('menu-link--active');
+  });
+
+  it('keeps dynamic category destinations and activates only the matching category route', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const router = TestBed.inject(Router);
+
+    await renderMenuAt(fixture, router, '/categories');
+
+    const healthLink = menuItemByLabel(fixture, 'Health');
+    healthLink.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(router.url).toBe('/tasks/category/health');
+    expect(healthLink.classList).toContain('menu-link--active');
+    expect(menuItemByLabel(fixture, 'All Tasks').classList).not.toContain('menu-link--active');
+    expect(menuItemByLabel(fixture, 'Uncategorized').classList).not.toContain('menu-link--active');
+  });
+
+  it('keeps distinct dynamic category routes mutually exclusive when the active route changes', async () => {
+    categoryService.getMenuFilters.and.resolveTo([
+      { label: 'All Tasks', filter: { kind: 'all' } },
+      { label: 'Uncategorized', filter: { kind: 'uncategorized' } },
+      { label: 'Health', filter: { kind: 'category', categoryId: 'health' } },
+      { label: 'Home', filter: { kind: 'category', categoryId: 'home' } },
+    ]);
+    const fixture = TestBed.createComponent(AppComponent);
+    const router = TestBed.inject(Router);
+
+    await renderMenuAt(fixture, router, '/tasks/category/health');
+
+    expect(menuItemByLabel(fixture, 'Health').classList).toContain('menu-link--active');
+    expect(menuItemByLabel(fixture, 'Home').classList).not.toContain('menu-link--active');
+
+    await renderMenuAt(fixture, router, '/tasks/category/home');
+
+    expect(menuItemByLabel(fixture, 'Home').classList).toContain('menu-link--active');
+    expect(menuItemByLabel(fixture, 'Health').classList).not.toContain('menu-link--active');
+  });
+
+  it('renders transparent Ionic list hosts so the menu shell remains visible between navigation rows', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+
+    await fixture.componentInstance.loadMenuItems();
+    fixture.detectChanges();
+
+    const menuLists = fixture.nativeElement.querySelectorAll('ion-list') as NodeListOf<HTMLElement>;
+
+    expect(menuLists.length).toBe(2);
+    for (const menuList of Array.from(menuLists)) {
+      expect(getComputedStyle(menuList).getPropertyValue('--ion-item-background').trim()).toBe('transparent');
+    }
+    expect(getComputedStyle(fixture.nativeElement.querySelector('ion-list-header')).getPropertyValue('--background').trim()).toBe('transparent');
   });
 
   it('refreshes a renamed category menu label through the category change notification', async () => {
@@ -154,3 +237,19 @@ describe('AppComponent', () => {
   });
 
 });
+
+async function renderMenuAt(fixture: ReturnType<typeof TestBed.createComponent<AppComponent>>, router: Router, url: string): Promise<void> {
+  await fixture.componentInstance.loadMenuItems();
+  fixture.detectChanges();
+  await router.navigateByUrl(url);
+  await fixture.whenStable();
+  fixture.detectChanges();
+}
+
+function menuItemByLabel(fixture: ReturnType<typeof TestBed.createComponent<AppComponent>>, label: string): HTMLElement {
+  const items = fixture.nativeElement.querySelectorAll('ion-item') as NodeListOf<HTMLElement>;
+  const item = Array.from(items).find((element) => element.textContent?.trim() === label);
+
+  expect(item).withContext(`Expected a menu item labelled ${label}`).toBeDefined();
+  return item as HTMLElement;
+}
