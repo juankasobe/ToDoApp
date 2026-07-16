@@ -7,6 +7,7 @@ import { Task } from '../models/task.model';
 import { TaskFilter, TaskService } from '../services/task.service';
 
 type RouteFilterKind = 'all' | 'uncategorized' | 'category';
+export type DueDateFilter = 'all' | 'overdue' | 'today' | 'upcoming' | 'none';
 
 @Component({
   selector: 'app-task-list',
@@ -19,10 +20,51 @@ export class TaskListPage {
   categories: Category[] = [];
   pageTitle = 'All Tasks';
   errorMessage = '';
+  dueDateFilter: DueDateFilter = 'all';
+
+  readonly dueDateFilterOptions: ReadonlyArray<{ value: DueDateFilter; label: string }> = [
+    { value: 'all', label: 'All' },
+    { value: 'overdue', label: 'Overdue' },
+    { value: 'today', label: 'Today' },
+    { value: 'upcoming', label: 'Upcoming' },
+    { value: 'none', label: 'No due date' },
+  ];
 
   private readonly taskService = inject(TaskService);
   private readonly categoryService = inject(CategoryService);
   private readonly route = inject(ActivatedRoute);
+
+  get displayedTasks(): Task[] {
+    if (!this.isAllTasksRoute()) {
+      return this.tasks;
+    }
+
+    const today = this.localToday();
+
+    return this.tasks.filter((task) => {
+      if (this.dueDateFilter === 'all') {
+        return true;
+      }
+
+      if (this.dueDateFilter === 'none') {
+        return task.dueDate === null;
+      }
+
+      if (task.dueDate === null) {
+        return false;
+      }
+
+      if (this.dueDateFilter === 'overdue') {
+        return !task.completed && task.dueDate < today;
+      }
+
+      if (this.dueDateFilter === 'today') {
+        return task.dueDate === today;
+      }
+
+      return task.dueDate > today;
+    });
+  }
 
   async ionViewWillEnter(): Promise<void> {
     await this.loadTasks();
@@ -78,6 +120,31 @@ export class TaskListPage {
 
   getPriorityLabel(task: Task): string {
     return `Priority: ${task.priority}`;
+  }
+
+  getDueDateLabel(task: Task): string | null {
+    return task.dueDate ? `Due: ${task.dueDate}` : null;
+  }
+
+  isTaskOverdue(task: Task): boolean {
+    return task.dueDate !== null && !task.completed && task.dueDate < this.localToday();
+  }
+
+  isFilteredEmptyState(): boolean {
+    return this.tasks.length > 0 && this.displayedTasks.length === 0;
+  }
+
+  isAllTasksRoute(): boolean {
+    return this.resolveFilter().kind === 'all';
+  }
+
+  localToday(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
   }
 
   private resolveFilter(): TaskFilter {
