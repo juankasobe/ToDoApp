@@ -32,6 +32,14 @@
     </ion-select>
   </ion-item>
 
+  <ion-item>
+    <ion-label position="stacked">Due date</ion-label>
+    <ion-input id="due-date-input" type="date" [(ngModel)]="dueDate"></ion-input>
+  </ion-item>
+  <ion-button fill="clear" aria-label="Clear due date" (click)="clearDueDate()">
+    Clear due date
+  </ion-button>
+
   <ion-note color="danger" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
   <ion-button *ngIf="canRetryCategoryLoad" fill="clear" aria-label="Retry category loading" (click)="retryCategoryLoad()">
     Retry

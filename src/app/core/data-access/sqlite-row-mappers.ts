@@ -14,6 +14,7 @@ export function mapTaskRow(row: SqliteRow): Task {
     categoryId: row['category_id'] === null || row['category_id'] === undefined ? null : String(row['category_id']),
     createdAt: String(row['created_at']),
     priority: isTaskPriority(priority) ? priority : DEFAULT_TASK_PRIORITY,
+    dueDate: row['due_date'] === null || row['due_date'] === undefined ? null : String(row['due_date']),
   };
 }
 

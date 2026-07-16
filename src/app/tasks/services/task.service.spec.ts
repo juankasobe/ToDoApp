@@ -6,7 +6,7 @@ import { TaskService } from './task.service';
 
 const createTask = (priority: 'low' | 'medium' | 'high' = 'medium') => ({
   id: 'task-1', title: 'Buy milk', completed: false, categoryId: null,
-  createdAt: '2026-07-09T20:00:00.000Z', priority,
+  createdAt: '2026-07-09T20:00:00.000Z', priority, dueDate: null,
 });
 
 describe('TaskService', () => {
@@ -27,7 +27,7 @@ describe('TaskService', () => {
     const task = await service.create({ title: '  Buy milk  ', categoryId: null });
 
     expect(task.title).toBe('Buy milk');
-    expect(repository.create).toHaveBeenCalledWith({ title: 'Buy milk', categoryId: null, priority: 'medium' });
+    expect(repository.create).toHaveBeenCalledWith({ title: 'Buy milk', categoryId: null, priority: 'medium', dueDate: null });
   });
 
   it('retains selected low and high priorities during creation', async () => {
@@ -36,8 +36,21 @@ describe('TaskService', () => {
     await service.create({ title: 'Buy milk', categoryId: null, priority: 'low' });
     await service.create({ title: 'Plan workout', categoryId: null, priority: 'high' });
 
-    expect(repository.create).toHaveBeenCalledWith({ title: 'Buy milk', categoryId: null, priority: 'low' });
-    expect(repository.create).toHaveBeenCalledWith({ title: 'Plan workout', categoryId: null, priority: 'high' });
+    expect(repository.create).toHaveBeenCalledWith({ title: 'Buy milk', categoryId: null, priority: 'low', dueDate: null });
+    expect(repository.create).toHaveBeenCalledWith({ title: 'Plan workout', categoryId: null, priority: 'high', dueDate: null });
+  });
+
+  it('passes a valid due date during creation', async () => {
+    repository.create.and.resolveTo({ ...createTask(), dueDate: '2026-07-15' });
+
+    await service.create({ title: 'Buy milk', categoryId: null, dueDate: '2026-07-15' });
+
+    expect(repository.create).toHaveBeenCalledWith({
+      title: 'Buy milk',
+      categoryId: null,
+      priority: 'medium',
+      dueDate: '2026-07-15',
+    });
   });
 
   it('rejects invalid create and update priorities before repository mutation', async () => {
@@ -45,6 +58,17 @@ describe('TaskService', () => {
       .toBeRejectedWithError('invalid-priority');
     await expectAsync(service.update({ id: 'task-1', title: 'Buy milk', categoryId: null, priority: 'urgent' as any }))
       .toBeRejectedWithError('invalid-priority');
+
+    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed and non-calendar due dates before repository mutation', async () => {
+    await expectAsync(service.create({ title: 'Buy milk', categoryId: null, dueDate: '07/15/2026' as any }))
+      .toBeRejectedWithError('invalid-due-date');
+
+    await expectAsync(service.update({ id: 'task-1', title: 'Buy milk', categoryId: null, dueDate: '2026-02-31' as any }))
+      .toBeRejectedWithError('invalid-due-date');
 
     expect(repository.create).not.toHaveBeenCalled();
     expect(repository.update).not.toHaveBeenCalled();
@@ -71,6 +95,7 @@ describe('TaskService', () => {
       categoryId: 'home',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     const task = await service.getById('task-1');
@@ -80,6 +105,7 @@ describe('TaskService', () => {
   });
 
   it('trims valid titles and updates the selected category', async () => {
+    repository.getById.and.resolveTo(createTask());
     repository.update.and.resolveTo({
       id: 'task-1',
       title: 'Buy oat milk',
@@ -87,12 +113,13 @@ describe('TaskService', () => {
       categoryId: 'errands',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     const task = await service.update({ id: 'task-1', title: '  Buy oat milk  ', categoryId: 'errands', priority: 'medium' });
 
     expect(task.completed).toBeTrue();
-    expect(repository.update).toHaveBeenCalledWith('task-1', { title: 'Buy oat milk', categoryId: 'errands', priority: 'medium' });
+    expect(repository.update).toHaveBeenCalledWith('task-1', { title: 'Buy oat milk', categoryId: 'errands', priority: 'medium', dueDate: null });
   });
 
   it('preserves a stored low or high priority when an unrelated update omits priority', async () => {
@@ -108,11 +135,47 @@ describe('TaskService', () => {
     await service.update({ id: 'low-task', title: 'Buy oat milk', categoryId: 'errands' });
     await service.update({ id: 'high-task', title: 'Plan workout', categoryId: null });
 
-    expect(repository.update).toHaveBeenCalledWith('low-task', { title: 'Buy oat milk', categoryId: 'errands', priority: 'low' });
-    expect(repository.update).toHaveBeenCalledWith('high-task', { title: 'Plan workout', categoryId: null, priority: 'high' });
+    expect(repository.update).toHaveBeenCalledWith('low-task', { title: 'Buy oat milk', categoryId: 'errands', priority: 'low', dueDate: null });
+    expect(repository.update).toHaveBeenCalledWith('high-task', { title: 'Plan workout', categoryId: null, priority: 'high', dueDate: null });
+  });
+
+  it('preserves the stored due date when an edit omits it', async () => {
+    repository.getById.and.resolveTo({ ...createTask('high'), dueDate: '2026-07-15' });
+    repository.update.and.resolveTo({ ...createTask('high'), title: 'Buy oat milk', dueDate: '2026-07-15' });
+
+    await service.update({ id: 'task-1', title: 'Buy oat milk', categoryId: null, dueDate: undefined });
+
+    expect(repository.update).toHaveBeenCalledWith('task-1', {
+      title: 'Buy oat milk',
+      categoryId: null,
+      priority: 'high',
+      dueDate: '2026-07-15',
+    });
+  });
+
+  it('clears the due date when update receives null or an empty string', async () => {
+    repository.getById.and.resolveTo(createTask('medium'));
+    repository.update.and.resolveTo(createTask('medium'));
+
+    await service.update({ id: 'task-1', title: 'Buy milk', categoryId: null, dueDate: null });
+    await service.update({ id: 'task-2', title: 'Plan workout', categoryId: null, dueDate: '' });
+
+    expect(repository.update).toHaveBeenCalledWith('task-1', {
+      title: 'Buy milk',
+      categoryId: null,
+      priority: 'medium',
+      dueDate: null,
+    });
+    expect(repository.update).toHaveBeenCalledWith('task-2', {
+      title: 'Plan workout',
+      categoryId: null,
+      priority: 'medium',
+      dueDate: null,
+    });
   });
 
   it('passes a null category update command to clear task assignment', async () => {
+    repository.getById.and.resolveTo(createTask());
     repository.update.and.resolveTo({
       id: 'task-1',
       title: 'Inbox item',
@@ -120,12 +183,13 @@ describe('TaskService', () => {
       categoryId: null,
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     const task = await service.update({ id: 'task-1', title: 'Inbox item', categoryId: null, priority: 'medium' });
 
     expect(task.categoryId).toBeNull();
-    expect(repository.update).toHaveBeenCalledWith('task-1', { title: 'Inbox item', categoryId: null, priority: 'medium' });
+    expect(repository.update).toHaveBeenCalledWith('task-1', { title: 'Inbox item', categoryId: null, priority: 'medium', dueDate: null });
   });
 
   it('rejects whitespace-only update titles before calling the repository', async () => {
@@ -135,11 +199,13 @@ describe('TaskService', () => {
   });
 
   it('propagates missing task and category failures during update', async () => {
+    repository.getById.and.rejectWith(new Error('task-not-found'));
     repository.update.and.rejectWith(new Error('task-not-found'));
 
     await expectAsync(service.update({ id: 'missing-task', title: 'Plan workout', categoryId: null, priority: 'medium' }))
       .toBeRejectedWithError('task-not-found');
 
+    repository.getById.and.resolveTo(createTask());
     repository.update.and.rejectWith(new Error(CATEGORY_ERROR_CODE.NOT_FOUND));
 
     await expectAsync(service.update({ id: 'task-1', title: 'Plan workout', categoryId: 'missing-category', priority: 'medium' }))
@@ -166,6 +232,7 @@ describe('TaskService', () => {
       categoryId: null,
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     const task = await service.setCompleted('task-1', true);

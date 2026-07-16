@@ -18,13 +18,23 @@
     </ion-card-content>
   </ion-card>
 
-  <ion-list *ngIf="tasks.length; else emptyState">
-    <ion-item-sliding *ngFor="let task of tasks">
+  <ion-item *ngIf="isAllTasksRoute()">
+    <ion-select id="due-date-filter" [(ngModel)]="dueDateFilter" aria-label="Due date">
+      <ion-select-option *ngFor="let option of dueDateFilterOptions" [value]="option.value">
+        {{ option.label }}
+      </ion-select-option>
+    </ion-select>
+  </ion-item>
+
+  <ion-list *ngIf="displayedTasks.length; else emptyState">
+    <ion-item-sliding *ngFor="let task of displayedTasks">
       <ion-item>
         <ion-checkbox slot="start" [checked]="task.completed" (ionChange)="toggleTask(task)"></ion-checkbox>
         <ion-label>
           <h2 [class.completed]="task.completed">{{ task.title }}</h2>
           <p>{{ getPriorityLabel(task) }}</p>
+          <p *ngIf="getDueDateLabel(task) as dueDateLabel">{{ dueDateLabel }}</p>
+          <p *ngIf="isTaskOverdue(task)">Overdue</p>
           <p *ngIf="task.categoryId">Category: {{ getCategoryName(task.categoryId) }}</p>
           <p *ngIf="!task.categoryId">Uncategorized</p>
         </ion-label>
@@ -39,9 +49,11 @@
   <ng-template #emptyState>
     <ion-card>
       <ion-card-header>
-        <ion-card-title>No tasks yet</ion-card-title>
+        <ion-card-title>{{ isFilteredEmptyState() ? 'No tasks match this due-date filter.' : 'No tasks yet' }}</ion-card-title>
       </ion-card-header>
-      <ion-card-content>Create a local task to see it here.</ion-card-content>
+      <ion-card-content>
+        {{ isFilteredEmptyState() ? 'Try a different due-date filter to see other tasks.' : 'Create a local task to see it here.' }}
+      </ion-card-content>
     </ion-card>
   </ng-template>
 </ion-content>

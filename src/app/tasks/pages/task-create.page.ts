@@ -17,6 +17,7 @@ export class TaskCreatePage {
   title = '';
   categoryId: string | null = null;
   priority: TaskPriority = DEFAULT_TASK_PRIORITY;
+  dueDate: string | null = null;
   readonly taskPriorities = TASK_PRIORITIES;
   categories: Category[] = [];
   errorMessage = '';
@@ -55,6 +56,7 @@ export class TaskCreatePage {
     this.title = '';
     this.categoryId = null;
     this.priority = DEFAULT_TASK_PRIORITY;
+    this.dueDate = null;
     this.errorMessage = '';
     if (!await this.loadCategories()) {
       return;
@@ -75,12 +77,18 @@ export class TaskCreatePage {
       this.title = this.currentTask.title;
       this.categoryId = this.currentTask.categoryId;
       this.priority = this.currentTask.priority;
+      this.dueDate = this.currentTask.dueDate;
     } catch (error) {
       this.title = '';
       this.categoryId = null;
       this.priority = DEFAULT_TASK_PRIORITY;
+      this.dueDate = null;
       this.errorMessage = this.toErrorMessage(error);
     }
+  }
+
+  clearDueDate(): void {
+    this.dueDate = null;
   }
 
   async save(): Promise<void> {
@@ -93,12 +101,19 @@ export class TaskCreatePage {
           title: this.title,
           categoryId: this.categoryId,
           priority: this.priority,
+          dueDate: this.dueDate,
         });
       } else {
-        await this.taskService.create({ title: this.title, categoryId: this.categoryId, priority: this.priority });
+        await this.taskService.create({
+          title: this.title,
+          categoryId: this.categoryId,
+          priority: this.priority,
+          dueDate: this.dueDate,
+        });
         this.title = '';
         this.categoryId = null;
         this.priority = DEFAULT_TASK_PRIORITY;
+        this.dueDate = null;
       }
 
       await this.router.navigateByUrl('/tasks');
@@ -111,6 +126,7 @@ export class TaskCreatePage {
     this.title = '';
     this.categoryId = null;
     this.priority = DEFAULT_TASK_PRIORITY;
+    this.dueDate = null;
     this.errorMessage = '';
     this.canRetryCategoryLoad = false;
     this.editTaskId = null;
@@ -139,6 +155,10 @@ export class TaskCreatePage {
 
     if (error instanceof Error && error.message === CATEGORY_ERROR_CODE.NOT_FOUND) {
       return 'Choose an existing category or leave the task uncategorized.';
+    }
+
+    if (error instanceof Error && error.message === 'invalid-due-date') {
+      return 'Enter a valid due date.';
     }
 
     if (error instanceof Error && error.message === 'task-not-found') {

@@ -8,12 +8,14 @@ export type CreateTaskInput = {
   title: string;
   categoryId: string | null;
   priority: TaskPriority;
+  dueDate?: string | null;
 };
 
 export type UpdateTaskInput = {
   title: string;
   categoryId: string | null;
   priority: TaskPriority;
+  dueDate?: string | null;
 };
 
 export abstract class TaskRepository {
