@@ -23,6 +23,7 @@ describe('TaskListPage', () => {
         categoryId: 'home',
         createdAt: '2026-07-09T20:00:00.000Z',
         priority: 'medium',
+        dueDate: null,
       },
     ]);
     categoryService.list.and.resolveTo([
@@ -63,11 +64,11 @@ describe('TaskListPage', () => {
     service.list.and.resolveTo([
       {
         id: 'new-low', title: 'Newest', completed: false, categoryId: null,
-        createdAt: '2026-07-10T20:00:00.000Z', priority: 'low',
+        createdAt: '2026-07-10T20:00:00.000Z', priority: 'low', dueDate: null,
       },
       {
         id: 'old-high', title: 'Older', completed: false, categoryId: null,
-        createdAt: '2026-07-09T20:00:00.000Z', priority: 'high',
+        createdAt: '2026-07-09T20:00:00.000Z', priority: 'high', dueDate: null,
       },
     ]);
 
@@ -80,8 +81,8 @@ describe('TaskListPage', () => {
   it('renders each task priority in the visible task list', async () => {
     const page = createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
     service.list.and.resolveTo([
-      { id: 'low', title: 'Low', completed: false, categoryId: null, createdAt: '2026-07-10T20:00:00.000Z', priority: 'low' },
-      { id: 'high', title: 'High', completed: false, categoryId: null, createdAt: '2026-07-09T20:00:00.000Z', priority: 'high' },
+      { id: 'low', title: 'Low', completed: false, categoryId: null, createdAt: '2026-07-10T20:00:00.000Z', priority: 'low', dueDate: null },
+      { id: 'high', title: 'High', completed: false, categoryId: null, createdAt: '2026-07-09T20:00:00.000Z', priority: 'high', dueDate: null },
     ]);
     const fixture = TestBed.createComponent(TaskListPage);
     fixture.componentInstance.tasks = page.tasks;
