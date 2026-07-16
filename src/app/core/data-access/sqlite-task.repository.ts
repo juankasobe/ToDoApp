@@ -16,7 +16,7 @@ export class SQLiteTaskRepository implements TaskRepository {
     const db = await this.sqliteService.getDatabase();
     const where = this.buildWhere(filter);
     const result = await db.query(
-      `SELECT id, title, completed, category_id, created_at, priority
+      `SELECT id, title, completed, category_id, created_at, priority, due_date
        FROM tasks${where.clause}
        ORDER BY created_at DESC`,
       where.values,
@@ -39,12 +39,13 @@ export class SQLiteTaskRepository implements TaskRepository {
       categoryId: input.categoryId,
       createdAt: new Date().toISOString(),
       priority: input.priority,
+      dueDate: input.dueDate ?? null,
     };
 
     await db.run(
-      `INSERT INTO tasks (id, title, completed, category_id, created_at, priority)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [task.id, task.title, SQLITE_FALSE, task.categoryId, task.createdAt, task.priority],
+      `INSERT INTO tasks (id, title, completed, category_id, created_at, priority, due_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [task.id, task.title, SQLITE_FALSE, task.categoryId, task.createdAt, task.priority, task.dueDate],
     );
 
     return task;
@@ -53,7 +54,7 @@ export class SQLiteTaskRepository implements TaskRepository {
   async getById(id: string): Promise<Task> {
     const db = await this.sqliteService.getDatabase();
     const result = await db.query(
-      'SELECT id, title, completed, category_id, created_at, priority FROM tasks WHERE id = ?',
+      'SELECT id, title, completed, category_id, created_at, priority, due_date FROM tasks WHERE id = ?',
       [id],
     );
     const task = result.values?.[0];
@@ -72,7 +73,15 @@ export class SQLiteTaskRepository implements TaskRepository {
       await this.assertCategoryExists(input.categoryId);
     }
 
-    await db.run('UPDATE tasks SET title = ?, category_id = ?, priority = ? WHERE id = ?', [input.title, input.categoryId, input.priority, id]);
+    const updatesDueDate = Object.prototype.hasOwnProperty.call(input, 'dueDate');
+    const statement = updatesDueDate
+      ? 'UPDATE tasks SET title = ?, category_id = ?, priority = ?, due_date = ? WHERE id = ?'
+      : 'UPDATE tasks SET title = ?, category_id = ?, priority = ? WHERE id = ?';
+    const values = updatesDueDate
+      ? [input.title, input.categoryId, input.priority, input.dueDate ?? null, id]
+      : [input.title, input.categoryId, input.priority, id];
+
+    await db.run(statement, values);
 
     return this.getById(id);
   }
@@ -81,7 +90,7 @@ export class SQLiteTaskRepository implements TaskRepository {
     const db = await this.sqliteService.getDatabase();
     await db.run('UPDATE tasks SET completed = ? WHERE id = ?', [completed ? SQLITE_TRUE : SQLITE_FALSE, id]);
     const result = await db.query(
-      'SELECT id, title, completed, category_id, created_at, priority FROM tasks WHERE id = ?',
+      'SELECT id, title, completed, category_id, created_at, priority, due_date FROM tasks WHERE id = ?',
       [id],
     );
     const task = result.values?.[0];

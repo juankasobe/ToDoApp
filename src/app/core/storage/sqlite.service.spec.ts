@@ -13,10 +13,14 @@ class SchemaDatabase {
     private failSchema = false,
     private readonly schemaAlreadyExists = false,
     hasPriorityColumn = false,
+    hasDueDateColumn = false,
   ) {
     this.columns = ['id', 'title', 'completed', 'category_id', 'created_at'];
     if (hasPriorityColumn) {
       this.columns.push('priority');
+    }
+    if (hasDueDateColumn) {
+      this.columns.push('due_date');
     }
   }
 
@@ -37,6 +41,11 @@ class SchemaDatabase {
     if (statement.includes('ALTER TABLE tasks ADD COLUMN priority') && !this.columns.includes('priority')) {
       this.columns.push('priority');
       this.rows.forEach((row) => row['priority'] = 'medium');
+    }
+
+    if (statement.includes('ALTER TABLE tasks ADD COLUMN due_date') && !this.columns.includes('due_date')) {
+      this.columns.push('due_date');
+      this.rows.forEach((row) => row['due_date'] = null);
     }
 
     if (/UPDATE\s+tasks\s+SET\s+priority/.test(statement)) {
@@ -96,6 +105,17 @@ describe('SQLiteService', () => {
     expect(execute.calls.allArgs().map(([statement]) => statement).join('\n')).toContain("priority TEXT NOT NULL DEFAULT 'medium'");
   });
 
+  it('creates a nullable due-date column for fresh task schemas', async () => {
+    const service = new SQLiteService();
+    const execute = jasmine.createSpy('execute').and.resolveTo({});
+    const query = jasmine.createSpy('query').and.resolveTo({ values: [{ name: 'priority' }, { name: 'due_date' }] });
+    const database = { execute, query } as unknown as SQLiteDBConnection;
+
+    await (service as any).applySchema(database);
+
+    expect(execute.calls.allArgs().map(([statement]) => statement).join('\n')).toContain('due_date TEXT NULL');
+  });
+
   it('adds a missing priority column once while retaining the existing task schema', async () => {
     const service = new SQLiteService();
     const execute = jasmine.createSpy('execute').and.resolveTo({});
@@ -137,8 +157,8 @@ describe('SQLiteService', () => {
     await firstService.initialize();
 
     expect(legacyRows).toEqual([
-      { id: 'low-missing', title: 'Buy milk', completed: 1, category_id: 'home', created_at: '2026-07-09T20:00:00.000Z', priority: 'medium' },
-      { id: 'second-missing', title: 'Plan workout', completed: 0, category_id: null, created_at: '2026-07-10T20:00:00.000Z', priority: 'medium' },
+      { id: 'low-missing', title: 'Buy milk', completed: 1, category_id: 'home', created_at: '2026-07-09T20:00:00.000Z', priority: 'medium', due_date: null },
+      { id: 'second-missing', title: 'Plan workout', completed: 0, category_id: null, created_at: '2026-07-10T20:00:00.000Z', priority: 'medium', due_date: null },
     ]);
 
     const retryService = new SQLiteService();
@@ -146,6 +166,30 @@ describe('SQLiteService', () => {
     await retryService.initialize();
 
     expect(database.executed.filter((statement) => statement.includes('ALTER TABLE tasks ADD COLUMN priority'))).toHaveSize(1);
+  });
+
+  it('adds a nullable due date to legacy rows without changing existing fields and remains idempotent', async () => {
+    const legacyRows: PersistedTaskRow[] = [
+      { id: 'dated-later', title: 'Buy milk', completed: 1, category_id: 'home', created_at: '2026-07-09T20:00:00.000Z', priority: 'low' },
+      { id: 'undated', title: 'Plan workout', completed: 0, category_id: null, created_at: '2026-07-10T20:00:00.000Z', priority: 'high' },
+    ];
+    const database = new SchemaDatabase(legacyRows, false, true, true);
+    const createConnection = jasmine.createSpy('createConnection').and.resolveTo(database);
+    const firstService = new SQLiteService();
+    configureNativeConnection(firstService, database, createConnection);
+
+    await firstService.initialize();
+
+    expect(legacyRows).toEqual([
+      { id: 'dated-later', title: 'Buy milk', completed: 1, category_id: 'home', created_at: '2026-07-09T20:00:00.000Z', priority: 'low', due_date: null },
+      { id: 'undated', title: 'Plan workout', completed: 0, category_id: null, created_at: '2026-07-10T20:00:00.000Z', priority: 'high', due_date: null },
+    ]);
+
+    const retryService = new SQLiteService();
+    configureNativeConnection(retryService, database, createConnection);
+    await retryService.initialize();
+
+    expect(database.executed.filter((statement) => statement.includes('ALTER TABLE tasks ADD COLUMN due_date'))).toHaveSize(1);
   });
 
   it('normalizes null and invalid legacy priority values while preserving valid priorities', async () => {
