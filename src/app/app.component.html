@@ -20,35 +20,42 @@
   </ng-container>
 
   <ng-template #appShell>
-    <ion-menu contentId="main-content" (ionWillOpen)="onMenuWillOpen()">
-    <ion-header>
+    <ion-menu contentId="main-content" class="menu-shell" (ionWillOpen)="onMenuWillOpen()">
+    <ion-header class="menu-shell__header">
       <ion-toolbar>
         <ion-title>PersonalTo-DO</ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content>
-      <ion-list>
+    <ion-content class="menu-shell__content">
+      <div class="menu-decoration" aria-hidden="true">
+        <span class="menu-decoration__moon"></span>
+        <span class="menu-decoration__cloud menu-decoration__cloud--near"></span>
+        <span class="menu-decoration__cloud menu-decoration__cloud--far"></span>
+      </div>
+      <div class="menu-shell__body">
+      <ion-list class="menu-list">
         <ion-menu-toggle auto-hide="false" *ngFor="let item of menuItems">
-          <ion-item button [routerLink]="item.url" routerDirection="root">
+          <ion-item button class="menu-link" [routerLink]="item.url" routerDirection="root" routerLinkActive="menu-link--active" [routerLinkActiveOptions]="{ exact: true }">
             <ion-label>{{ item.label }}</ion-label>
           </ion-item>
         </ion-menu-toggle>
       </ion-list>
 
-      <ion-list>
+      <ion-list class="menu-list menu-list--manage">
         <ion-list-header>Manage</ion-list-header>
         <ion-menu-toggle auto-hide="false">
-          <ion-item button routerLink="/tasks/new" routerDirection="forward">
+          <ion-item button class="menu-link" routerLink="/tasks/new" routerDirection="forward" routerLinkActive="menu-link--active" [routerLinkActiveOptions]="{ exact: true }">
             <ion-label>New Task</ion-label>
           </ion-item>
         </ion-menu-toggle>
         <ion-menu-toggle auto-hide="false">
-          <ion-item button routerLink="/categories" routerDirection="forward">
+          <ion-item button class="menu-link" routerLink="/categories" routerDirection="forward" routerLinkActive="menu-link--active" [routerLinkActiveOptions]="{ exact: true }">
             <ion-label>Categories</ion-label>
           </ion-item>
         </ion-menu-toggle>
       </ion-list>
+      </div>
     </ion-content>
     </ion-menu>
 
