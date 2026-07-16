@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const sourceRoot = 'src';
-const focusedTestPattern = /\b(fit|fdescribe)\s*\(/;
+const focusedTestPattern = /\b(fit|fdescribe|(?:it|describe)\.only)\s*\(/;
 const matches = [];
 
 async function walk(directory) {

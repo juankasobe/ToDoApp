@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 
-import { DEFAULT_TASK_PRIORITY, isTaskPriority, Task, TaskPriority } from '../models/task.model';
+import { DEFAULT_TASK_PRIORITY, isTaskDueDate, isTaskPriority, Task, TaskPriority } from '../models/task.model';
 import { CATEGORY_ERROR_CODE } from '../../categories/models/category-error';
 import { TaskListFilter, TaskRepository } from '../../core/data-access/task.repository';
 
@@ -13,6 +13,7 @@ export type CreateTaskCommand = {
   title: string;
   categoryId: string | null;
   priority?: TaskPriority;
+  dueDate?: string | null;
 };
 
 export type UpdateTaskCommand = {
@@ -20,6 +21,7 @@ export type UpdateTaskCommand = {
   title: string;
   categoryId: string | null;
   priority?: TaskPriority;
+  dueDate?: string | null;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -39,7 +41,12 @@ export class TaskService {
     }
 
     try {
-      return await this.repository.create({ title, categoryId: command.categoryId, priority: this.resolvePriority(command.priority) });
+      return await this.repository.create({
+        title,
+        categoryId: command.categoryId,
+        priority: this.resolvePriority(command.priority),
+        dueDate: this.normalizeDueDate(command.dueDate),
+      });
     } catch (error) {
       if (error instanceof Error && error.message === CATEGORY_ERROR_CODE.NOT_FOUND) {
         throw new Error(CATEGORY_ERROR_CODE.NOT_FOUND);
@@ -61,10 +68,17 @@ export class TaskService {
     }
 
     try {
+      const priority = command.priority === undefined ? undefined : this.resolvePriority(command.priority);
+      const dueDate = command.dueDate === undefined ? undefined : this.normalizeDueDate(command.dueDate);
+      const existingTask = priority === undefined || dueDate === undefined
+        ? await this.repository.getById(command.id)
+        : null;
+
       return await this.repository.update(command.id, {
         title,
         categoryId: command.categoryId,
-        priority: await this.resolveUpdatePriority(command.id, command.priority),
+        priority: this.resolveUpdatePriority(priority, existingTask),
+        dueDate: this.resolveUpdateDueDate(dueDate, existingTask),
       });
     } catch (error) {
       if (error instanceof Error && (error.message === CATEGORY_ERROR_CODE.NOT_FOUND || error.message === 'task-not-found')) {
@@ -107,11 +121,39 @@ export class TaskService {
     return priority;
   }
 
-  private async resolveUpdatePriority(id: string, priority: unknown): Promise<TaskPriority> {
+  private resolveUpdatePriority(priority: TaskPriority | undefined, existingTask: Task | null): TaskPriority {
     if (priority === undefined) {
-      return (await this.repository.getById(id)).priority;
+      if (!existingTask) {
+        throw new Error('task-not-found');
+      }
+
+      return existingTask.priority;
     }
 
     return this.resolvePriority(priority);
+  }
+
+  private resolveUpdateDueDate(dueDate: string | null | undefined, existingTask: Task | null): string | null {
+    if (dueDate === undefined) {
+      if (!existingTask) {
+        throw new Error('task-not-found');
+      }
+
+      return existingTask.dueDate;
+    }
+
+    return this.normalizeDueDate(dueDate);
+  }
+
+  private normalizeDueDate(dueDate: string | null | undefined): string | null {
+    if (dueDate === undefined || dueDate === null || dueDate === '') {
+      return null;
+    }
+
+    if (!isTaskDueDate(dueDate)) {
+      throw new Error('invalid-due-date');
+    }
+
+    return dueDate;
   }
 }

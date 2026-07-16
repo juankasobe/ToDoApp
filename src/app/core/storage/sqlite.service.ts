@@ -62,6 +62,7 @@ export class SQLiteService {
         category_id TEXT NULL,
         created_at TEXT NOT NULL,
         priority TEXT NOT NULL DEFAULT ${DEFAULT_TASK_PRIORITY_SQL} CHECK (priority IN (${TASK_PRIORITY_SQL_VALUES})),
+        due_date TEXT NULL,
         FOREIGN KEY (category_id) REFERENCES categories(id)
       );
 
@@ -70,9 +71,14 @@ export class SQLiteService {
 
     const columns = await db.query('PRAGMA table_info(tasks)');
     const hasPriority = columns.values?.some((column) => column['name'] === 'priority');
+    const hasDueDate = columns.values?.some((column) => column['name'] === 'due_date');
 
     if (!hasPriority) {
       await db.execute(`ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT ${DEFAULT_TASK_PRIORITY_SQL}`);
+    }
+
+    if (!hasDueDate) {
+      await db.execute('ALTER TABLE tasks ADD COLUMN due_date TEXT NULL');
     }
 
     await db.execute(`UPDATE tasks
