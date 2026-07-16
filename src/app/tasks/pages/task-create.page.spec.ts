@@ -66,6 +66,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
     page.title = '  Plan workout  ';
     page.categoryId = 'health';
@@ -76,6 +77,7 @@ describe('TaskCreatePage', () => {
       title: '  Plan workout  ',
       categoryId: 'health',
       priority: 'medium',
+      dueDate: null,
     });
     expect(router.navigateByUrl).toHaveBeenCalledWith('/tasks');
   });
@@ -88,6 +90,7 @@ describe('TaskCreatePage', () => {
       categoryId: null,
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'high',
+      dueDate: null,
     });
     page.title = 'Plan workout';
     page.priority = 'high';
@@ -98,13 +101,48 @@ describe('TaskCreatePage', () => {
       title: 'Plan workout',
       categoryId: null,
       priority: 'high',
+      dueDate: null,
     });
+  });
+
+  it('renders a clearable due-date input, saves the selected date, and resets it after create success', async () => {
+    taskService.create.and.resolveTo({
+      id: 'task-1', title: 'Plan workout', completed: false, categoryId: null,
+      createdAt: '2026-07-09T20:00:00.000Z', priority: 'medium', dueDate: '2026-07-15',
+    });
+    const fixture = TestBed.createComponent(TaskCreatePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const dueDateInput = fixture.nativeElement.querySelector('#due-date-input');
+    expect(component.dueDate).toBeNull();
+
+    fixture.nativeElement.querySelector('ion-input[placeholder="Task title"]').value = 'Plan workout';
+    fixture.nativeElement.querySelector('ion-input[placeholder="Task title"]').dispatchEvent(
+      new CustomEvent('ionInput', { bubbles: true }),
+    );
+    dueDateInput.value = '2026-07-15';
+    dueDateInput.dispatchEvent(new CustomEvent('ionInput', { bubbles: true }));
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('ion-button[expand="block"]').click();
+    await fixture.whenStable();
+
+    expect(taskService.create).toHaveBeenCalledWith({
+      title: 'Plan workout',
+      categoryId: null,
+      priority: 'medium',
+      dueDate: '2026-07-15',
+    });
+    expect(component.dueDate).toBeNull();
   });
 
   it('renders canonical priority options, defaults to medium, and saves a selected priority', async () => {
     taskService.create.and.resolveTo({
       id: 'task-1', title: 'Plan workout', completed: false, categoryId: null,
-      createdAt: '2026-07-09T20:00:00.000Z', priority: 'high',
+      createdAt: '2026-07-09T20:00:00.000Z', priority: 'high', dueDate: null,
     });
     const fixture = TestBed.createComponent(TaskCreatePage);
     const component = fixture.componentInstance;
@@ -129,7 +167,7 @@ describe('TaskCreatePage', () => {
     fixture.nativeElement.querySelector('ion-button[expand="block"]').click();
     await fixture.whenStable();
 
-    expect(taskService.create).toHaveBeenCalledWith({ title: 'Plan workout', categoryId: null, priority: 'high' });
+    expect(taskService.create).toHaveBeenCalledWith({ title: 'Plan workout', categoryId: null, priority: 'high', dueDate: null });
   });
 
   it('shows feedback when the title is empty and does not create a task', async () => {
@@ -152,6 +190,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     await page.ionViewWillEnter();
@@ -162,8 +201,68 @@ describe('TaskCreatePage', () => {
     expect(page.title).toBe('Buy milk');
     expect(page.categoryId).toBe('health');
     expect(page.priority).toBe('medium');
+    expect(page.dueDate).toBeNull();
     expect(taskService.update).not.toHaveBeenCalled();
     expect(taskService.create).not.toHaveBeenCalled();
+  });
+
+  it('renders the existing due date in edit mode and preserves it on save until the user clears it', async () => {
+    paramMap.set('taskId', 'task-1');
+    taskService.getById.and.resolveTo({
+      id: 'task-1', title: 'Buy milk', completed: false, categoryId: 'health',
+      createdAt: '2026-07-09T20:00:00.000Z', priority: 'high', dueDate: '2026-07-15',
+    });
+    taskService.update.and.resolveTo({} as never);
+    const fixture = TestBed.createComponent(TaskCreatePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const dueDateInput = fixture.nativeElement.querySelector('#due-date-input');
+    expect(component.dueDate).toBe('2026-07-15');
+    expect(dueDateInput.value).toBe('2026-07-15');
+
+    fixture.nativeElement.querySelector('ion-button[expand="block"]').click();
+    await fixture.whenStable();
+
+    expect(taskService.update).toHaveBeenCalledWith({
+      id: 'task-1',
+      title: 'Buy milk',
+      categoryId: 'health',
+      priority: 'high',
+      dueDate: '2026-07-15',
+    });
+  });
+
+  it('clears the selected due date from the edit form and saves null', async () => {
+    paramMap.set('taskId', 'task-1');
+    taskService.getById.and.resolveTo({
+      id: 'task-1', title: 'Buy milk', completed: false, categoryId: 'health',
+      createdAt: '2026-07-09T20:00:00.000Z', priority: 'medium', dueDate: '2026-07-15',
+    });
+    taskService.update.and.resolveTo({} as never);
+    const fixture = TestBed.createComponent(TaskCreatePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('ion-button[fill="clear"]').click();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('ion-button[expand="block"]').click();
+    await fixture.whenStable();
+
+    expect(component.dueDate).toBeNull();
+    expect(taskService.update).toHaveBeenCalledWith({
+      id: 'task-1',
+      title: 'Buy milk',
+      categoryId: 'health',
+      priority: 'medium',
+      dueDate: null,
+    });
   });
 
   it('updates the current task and returns to all tasks from edit mode', async () => {
@@ -175,6 +274,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
     taskService.update.and.resolveTo({
       id: 'task-1',
@@ -183,6 +283,7 @@ describe('TaskCreatePage', () => {
       categoryId: null,
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     await page.ionViewWillEnter();
@@ -195,6 +296,7 @@ describe('TaskCreatePage', () => {
       title: 'Buy oat milk',
       categoryId: null,
       priority: 'medium',
+      dueDate: null,
     });
     expect(router.navigateByUrl).toHaveBeenCalledWith('/tasks');
   });
@@ -208,6 +310,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'high',
+      dueDate: null,
     });
     taskService.update.and.resolveTo({
       id: 'task-1',
@@ -216,6 +319,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'low',
+      dueDate: null,
     });
 
     await page.ionViewWillEnter();
@@ -229,6 +333,7 @@ describe('TaskCreatePage', () => {
       title: 'Buy milk',
       categoryId: 'health',
       priority: 'low',
+      dueDate: null,
     });
   });
 
@@ -236,7 +341,7 @@ describe('TaskCreatePage', () => {
     paramMap.set('taskId', 'task-1');
     taskService.getById.and.resolveTo({
       id: 'task-1', title: 'Buy milk', completed: false, categoryId: 'health',
-      createdAt: '2026-07-09T20:00:00.000Z', priority: 'high',
+      createdAt: '2026-07-09T20:00:00.000Z', priority: 'high', dueDate: null,
     });
     taskService.update.and.resolveTo({} as never);
     const fixture = TestBed.createComponent(TaskCreatePage);
@@ -253,7 +358,7 @@ describe('TaskCreatePage', () => {
     await fixture.whenStable();
 
     expect(taskService.update).toHaveBeenCalledWith({
-      id: 'task-1', title: 'Buy milk', categoryId: 'health', priority: 'high',
+      id: 'task-1', title: 'Buy milk', categoryId: 'health', priority: 'high', dueDate: null,
     });
   });
 
@@ -295,6 +400,29 @@ describe('TaskCreatePage', () => {
     expect(router.navigateByUrl).not.toHaveBeenCalled();
   });
 
+  it('renders the due-date validation message when save fails with invalid-due-date', async () => {
+    taskService.create.and.rejectWith(new Error('invalid-due-date'));
+    const fixture = TestBed.createComponent(TaskCreatePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const titleInput = fixture.nativeElement.querySelector('ion-input[placeholder="Task title"]');
+    titleInput.value = 'Plan workout';
+    titleInput.dispatchEvent(new CustomEvent('ionInput', { bubbles: true }));
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('ion-button[expand="block"]').click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.errorMessage).toBe('Enter a valid due date.');
+    expect(fixture.nativeElement.textContent).toContain('Enter a valid due date.');
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
+
   it('shows safe feedback when an edit task cannot be loaded', async () => {
     paramMap.set('taskId', 'missing-task');
     taskService.getById.and.rejectWith(new Error('task-not-found'));
@@ -314,6 +442,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
     taskService.update.and.rejectWith(new Error(CATEGORY_ERROR_CODE.NOT_FOUND));
 
@@ -333,6 +462,7 @@ describe('TaskCreatePage', () => {
       categoryId: 'health',
       createdAt: '2026-07-09T20:00:00.000Z',
       priority: 'medium',
+      dueDate: null,
     });
 
     await page.ionViewWillEnter();
