@@ -1,3 +1,119 @@
 :host {
   display: block;
 }
+
+ion-content {
+  --background: radial-gradient(circle at 82% 2%, #35235f 0, transparent 28rem), #090717;
+  --padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  --padding-top: max(1rem, env(safe-area-inset-top));
+}
+
+.category-manage-shell {
+  display: grid;
+  gap: 1rem;
+  margin: auto;
+  max-width: 38rem;
+  padding: .5rem 0 max(.75rem, env(safe-area-inset-bottom));
+  position: relative;
+  z-index: 1;
+}
+
+.category-create-form,
+.category-feedback {
+  display: grid;
+  gap: .625rem;
+}
+
+ion-item {
+  --background: rgba(37, 23, 70, .94);
+  --border-color: #6d4ba4;
+  --color: #f7f2ff;
+  --inner-border-width: 0;
+  --padding-end: .875rem;
+  --padding-start: .875rem;
+  border: 1px solid rgba(155, 112, 222, .55);
+  border-radius: 1rem;
+  margin: .375rem 0;
+  min-height: 2.75rem;
+  overflow: hidden;
+}
+
+ion-button {
+  --background: #6f43ae;
+  --border-radius: .875rem;
+  --color: #f8f3ff;
+  font-weight: 700;
+  min-height: 2.75rem;
+}
+
+ion-button[fill='clear'] { --background: transparent; --color: #f0b9e6; }
+
+ion-note[role='alert'] {
+  color: #ffd59a;
+  font-weight: 700;
+}
+
+ion-list {
+  --background: transparent;
+  --ion-item-background: transparent;
+  padding: 0;
+}
+
+ion-item-option {
+  --background: #4d3578;
+  --color: #fffaff;
+  font-weight: 700;
+}
+
+ion-item-option[color='danger'] { --background: #8d3159; }
+
+ion-item:focus-within,
+ion-button:focus-within,
+ion-item-option:focus-within,
+ion-menu-button:focus-within {
+  outline: 3px solid #ffd070;
+  outline-offset: 3px;
+}
+
+.category-manage-decoration {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+}
+
+.category-manage-moon,
+.category-manage-cloud {
+  display: block;
+  position: absolute;
+}
+
+.category-manage-moon {
+  background: #e6d7ff;
+  border-radius: 50%;
+  box-shadow: 0 0 3rem #a66fff;
+  height: 8rem;
+  opacity: .16;
+  right: -1.5rem;
+  top: 1.5rem;
+  width: 8rem;
+}
+
+.category-manage-cloud {
+  background: #a998d5;
+  border-radius: 999px;
+  height: 1rem;
+  opacity: .12;
+  width: 8rem;
+}
+
+.category-manage-cloud-primary { right: 2rem; top: 11rem; }
+.category-manage-cloud-secondary { left: -3rem; top: 22rem; }
+
+@media (max-width: 360px) {
+  .category-manage-shell { gap: .75rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .category-manage-decoration { animation: none; }
+}
