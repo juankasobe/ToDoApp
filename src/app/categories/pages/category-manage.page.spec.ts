@@ -340,4 +340,47 @@ describe('CategoryManagePage', () => {
     expect(fixture.nativeElement.querySelectorAll('ion-item-sliding')).toHaveSize(0);
     expect(fixture.nativeElement.querySelector('form[aria-label="Create category"] ion-button')).not.toBeNull();
   });
+
+  it('renders the destructive action with an accessible name and visible keyboard-focus style contract', async () => {
+    const fixture = TestBed.createComponent(CategoryManagePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+
+    const deleteAction = fixture.nativeElement.querySelector('ion-item-option[aria-label="Delete category Home"]') as HTMLElement;
+
+    expect(deleteAction.getAttribute('aria-label')).toBe('Delete category Home');
+    expect(categoryFocusStyleRule()).toContain('outline: 3px solid #ffd070');
+  });
+
+  it('renders category controls and compiles narrow-width and action-size CSS contracts', async () => {
+    const fixture = TestBed.createComponent(CategoryManagePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+
+    const compiledResponsiveStyles = compiledCategoryResponsiveStyles();
+
+    expect(fixture.nativeElement.querySelector('form[aria-label="Create category"] ion-button')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('ion-item-option[aria-label="Edit category Home"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('ion-item-option[aria-label="Delete category Home"]')).not.toBeNull();
+    expect(compiledResponsiveStyles).toContain('@media (max-width: 360px)');
+    expect(compiledCategoryActionStyles()).toContain('min-height: 2.75rem');
+  });
 });
+
+function categoryFocusStyleRule(): string {
+  return categoryStyleRules().find((rule) => rule.includes('outline: 3px solid #ffd070')) ?? '';
+}
+
+function compiledCategoryResponsiveStyles(): string {
+  return categoryStyleRules().filter((rule) => rule.includes('@media')).join('\n');
+}
+
+function compiledCategoryActionStyles(): string {
+  return categoryStyleRules().filter((rule) => rule.includes('ion-button') || rule.includes('ion-item')).join('\n');
+}
+
+function categoryStyleRules(): string[] {
+  return (CategoryManagePage as unknown as { ɵcmp: { styles: string[] } }).ɵcmp.styles;
+}

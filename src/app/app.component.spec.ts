@@ -139,6 +139,63 @@ describe('AppComponent', () => {
     expect(getComputedStyle(fixture.nativeElement.querySelector('ion-list-header')).getPropertyValue('--background').trim()).toBe('transparent');
   });
 
+  it('keeps decorative menu artwork hidden and inert while navigation remains available above it', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+
+    await fixture.componentInstance.loadMenuItems();
+    fixture.detectChanges();
+
+    const decoration = fixture.nativeElement.querySelector('.menu-decoration') as HTMLElement;
+    const menuLinks = fixture.nativeElement.querySelectorAll('ion-item.menu-link');
+
+    expect(decoration.getAttribute('aria-hidden')).toBe('true');
+    expect(decoration.querySelectorAll('a, button, input, [tabindex]').length).toBe(0);
+    expect(getComputedStyle(decoration).pointerEvents).toBe('none');
+    expect(menuLinks.length).toBe(5);
+    expect(getComputedStyle(fixture.nativeElement.querySelector('.menu-shell__body')).zIndex).toBe('1');
+  });
+
+  it('renders the startup-error shell and exposes its existing retry action', async () => {
+    sqliteService.initialize.and.rejectWith(new Error('sqlite-failed'));
+    const fixture = TestBed.createComponent(AppComponent);
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('ion-card-title').textContent).toContain('Local storage unavailable');
+    expect(fixture.nativeElement.querySelector('ion-card-content').textContent).toContain('Local storage could not start');
+    expect(fixture.nativeElement.querySelector('ion-button').textContent).toContain('Try Again');
+    expect(fixture.nativeElement.querySelector('ion-menu')).toBeNull();
+  });
+
+  it('renders a keyboard menu link with a visible-focus style contract and unchanged destination label', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const router = TestBed.inject(Router);
+
+    await renderMenuAt(fixture, router, '/tasks/new');
+
+    const newTaskLink = menuItemByLabel(fixture, 'New Task');
+
+    expect(menuFocusStyleRule()).toContain('outline: 2px solid #ffd88a');
+    expect(newTaskLink.textContent).toContain('New Task');
+  });
+
+  it('renders menu links and compiles narrow-width and reduced-motion CSS contracts', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+
+    await fixture.componentInstance.loadMenuItems();
+    fixture.detectChanges();
+
+    const compiledResponsiveStyles = compiledResponsiveMenuStyles();
+
+    expect(fixture.nativeElement.querySelectorAll('ion-item.menu-link').length).toBe(5);
+    expect(compiledResponsiveStyles).toContain('@media (max-width: 20rem)');
+    expect(compiledResponsiveStyles).toContain('--width: 100vw');
+    expect(compiledResponsiveStyles).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(compiledResponsiveStyles).toContain('transition: none');
+    expect(compiledResponsiveStyles).toContain('animation: none');
+  });
+
   it('refreshes a renamed category menu label through the category change notification', async () => {
     categoryService.getMenuFilters.and.returnValues(
       Promise.resolve([
@@ -162,6 +219,34 @@ describe('AppComponent', () => {
       { label: 'All Tasks', url: '/tasks' },
       { label: 'House', url: '/tasks/category/home' },
     ]);
+  });
+
+  it('renders refreshed category entries while preserving fixed management links', async () => {
+    categoryService.getMenuFilters.and.returnValues(
+      Promise.resolve([
+        { label: 'All Tasks', filter: { kind: 'all' as const } },
+        { label: 'Home', filter: { kind: 'category' as const, categoryId: 'home' } },
+      ]),
+      Promise.resolve([
+        { label: 'All Tasks', filter: { kind: 'all' as const } },
+        { label: 'House', filter: { kind: 'category' as const, categoryId: 'home' } },
+      ]),
+    );
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+
+    await fixture.whenStable();
+    app.ngOnInit();
+    await app.loadMenuItems();
+    fixture.detectChanges();
+    categoryChanges.next();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('House');
+    expect(fixture.nativeElement.textContent).not.toContain('Home');
+    expect(menuItemByLabel(fixture, 'New Task').textContent).toContain('New Task');
+    expect(menuItemByLabel(fixture, 'Categories').textContent).toContain('Categories');
   });
 
   it('keeps the current menu when a category-change reload fails', async () => {
@@ -252,4 +337,16 @@ function menuItemByLabel(fixture: ReturnType<typeof TestBed.createComponent<AppC
 
   expect(item).withContext(`Expected a menu item labelled ${label}`).toBeDefined();
   return item as HTMLElement;
+}
+
+function menuFocusStyleRule(): string {
+  return componentStyleRules().find((rule) => rule.includes('outline: 2px solid #ffd88a')) ?? '';
+}
+
+function compiledResponsiveMenuStyles(): string {
+  return componentStyleRules().filter((rule) => rule.includes('@media')).join('\n');
+}
+
+function componentStyleRules(): string[] {
+  return (AppComponent as unknown as { ɵcmp: { styles: string[] } }).ɵcmp.styles;
 }
