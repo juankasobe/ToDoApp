@@ -262,4 +262,82 @@ describe('CategoryManagePage', () => {
     expect(fixture.nativeElement.textContent).toContain('This category no longer exists.');
     expect(consoleErrorSpy).toHaveBeenCalledWith('Category rename failed.', jasmine.any(Error));
   });
+
+  it('creates a category when the rendered Save Category control is clicked', async () => {
+    const fixture = TestBed.createComponent(CategoryManagePage);
+    const component = fixture.componentInstance;
+    const health = { id: 'health', name: 'Health', createdAt: '2026-07-09T21:00:00.000Z' };
+    service.create.and.resolveTo(health);
+    service.list.and.returnValues(
+      Promise.resolve([{ id: 'home', name: 'Home', createdAt: '2026-07-09T20:00:00.000Z' }]),
+      Promise.resolve([health]),
+    );
+    await component.ionViewWillEnter();
+    component.name = 'Health';
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('form[aria-label="Create category"] ion-button').click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(service.create).toHaveBeenCalledWith({ name: 'Health' });
+    expect(component.name).toBe('');
+    expect(fixture.nativeElement.textContent).toContain('Health');
+  });
+
+  it('preserves guarded-delete feedback and the rendered category list after clicking Delete', async () => {
+    service.delete.and.rejectWith(new Error(CATEGORY_ERROR_CODE.NOT_EMPTY));
+    const fixture = TestBed.createComponent(CategoryManagePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+    service.list.calls.reset();
+
+    fixture.nativeElement.querySelector('ion-item-option[aria-label="Delete category Home"]').click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(service.delete).toHaveBeenCalledWith('home');
+    expect(service.list).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Move or delete tasks in this category before deleting it.');
+    expect(fixture.nativeElement.textContent).toContain('Home');
+  });
+
+  it('renders the category creation and list controls with accessible names', async () => {
+    const fixture = TestBed.createComponent(CategoryManagePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('form[aria-label="Create category"] ion-input[placeholder="Category name"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('section[aria-label="Category list"]')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Home');
+    expect(fixture.nativeElement.querySelector('ion-item-option[aria-label="Delete category Home"]')).not.toBeNull();
+  });
+
+  it('renders category feedback as an alert and keeps retry accessible after a load error', async () => {
+    service.list.and.rejectWith(new Error('load-failed'));
+    spyOn(console, 'error');
+    const fixture = TestBed.createComponent(CategoryManagePage);
+    const component = fixture.componentInstance;
+
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+
+    const alert = fixture.nativeElement.querySelector('[role="alert"]');
+    expect(alert.textContent).toContain('Categories could not be loaded. Try again.');
+    expect(fixture.nativeElement.querySelector('ion-button[aria-label="Retry category loading"]')).not.toBeNull();
+  });
+
+  it('keeps decorative content hidden from assistive technology without adding a category row', async () => {
+    service.list.and.resolveTo([]);
+    const fixture = TestBed.createComponent(CategoryManagePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[aria-hidden="true"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelectorAll('ion-item-sliding')).toHaveSize(0);
+    expect(fixture.nativeElement.querySelector('form[aria-label="Create category"] ion-button')).not.toBeNull();
+  });
 });

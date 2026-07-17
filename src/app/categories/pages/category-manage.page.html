@@ -1,4 +1,4 @@
-<ion-header>
+<ion-header class="category-manage-header">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-menu-button></ion-menu-button>
@@ -7,33 +7,47 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <ion-item>
-    <ion-label position="stacked">Name</ion-label>
-    <ion-input [(ngModel)]="name" placeholder="Category name"></ion-input>
-  </ion-item>
+<ion-content class="ion-padding category-manage-content">
+  <div class="category-manage-decoration" aria-hidden="true">
+    <span class="category-manage-moon"></span>
+    <span class="category-manage-cloud category-manage-cloud-primary"></span>
+    <span class="category-manage-cloud category-manage-cloud-secondary"></span>
+  </div>
 
-  <ion-note color="danger" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
-  <ion-button *ngIf="canRetryCategoryLoad" fill="clear" (click)="retryCategoryLoad()">Retry</ion-button>
-  <ion-button expand="block" (click)="createCategory()">Save Category</ion-button>
-
-  <ion-list>
-    <ion-list-header>Categories</ion-list-header>
-    <ion-item-sliding *ngFor="let category of categories">
+  <div class="category-manage-shell">
+    <form class="category-create-form" aria-label="Create category">
       <ion-item>
-        <ion-label *ngIf="editingCategoryId !== category.id">{{ category.name }}</ion-label>
-        <ion-input
-          *ngIf="editingCategoryId === category.id"
-          [(ngModel)]="editingName"
-          aria-label="Category name"
-        ></ion-input>
-        <ion-button *ngIf="editingCategoryId === category.id" fill="clear" aria-label="Save category edit" (click)="saveEditing()">Save</ion-button>
-        <ion-button *ngIf="editingCategoryId === category.id" fill="clear" aria-label="Cancel category edit" (click)="cancelEditing()">Cancel</ion-button>
+        <ion-label position="stacked">Name</ion-label>
+        <ion-input name="categoryName" [(ngModel)]="name" placeholder="Category name"></ion-input>
       </ion-item>
-      <ion-item-options side="end">
-        <ion-item-option *ngIf="editingCategoryId !== category.id" [attr.aria-label]="'Edit category ' + category.name" (click)="startEditing(category)">Edit</ion-item-option>
-        <ion-item-option color="danger" (click)="deleteCategory(category.id)">Delete</ion-item-option>
-      </ion-item-options>
-    </ion-item-sliding>
-  </ion-list>
+
+      <section class="category-feedback" aria-label="Category feedback">
+        <ion-note color="danger" role="alert" aria-live="assertive" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
+        <ion-button *ngIf="canRetryCategoryLoad" fill="clear" aria-label="Retry category loading" (click)="retryCategoryLoad()">Retry</ion-button>
+      </section>
+      <ion-button expand="block" (click)="createCategory()">Save Category</ion-button>
+    </form>
+
+    <section aria-label="Category list">
+      <ion-list>
+        <ion-list-header>Categories</ion-list-header>
+        <ion-item-sliding *ngFor="let category of categories">
+          <ion-item>
+            <ion-label *ngIf="editingCategoryId !== category.id">{{ category.name }}</ion-label>
+            <ion-input
+              *ngIf="editingCategoryId === category.id"
+              [(ngModel)]="editingName"
+              aria-label="Category name"
+            ></ion-input>
+            <ion-button *ngIf="editingCategoryId === category.id" fill="clear" aria-label="Save category edit" (click)="saveEditing()">Save</ion-button>
+            <ion-button *ngIf="editingCategoryId === category.id" fill="clear" aria-label="Cancel category edit" (click)="cancelEditing()">Cancel</ion-button>
+          </ion-item>
+          <ion-item-options side="end">
+            <ion-item-option *ngIf="editingCategoryId !== category.id" [attr.aria-label]="'Edit category ' + category.name" (click)="startEditing(category)">Edit</ion-item-option>
+            <ion-item-option color="danger" [attr.aria-label]="'Delete category ' + category.name" (click)="deleteCategory(category.id)">Delete</ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ion-list>
+    </section>
+  </div>
 </ion-content>
