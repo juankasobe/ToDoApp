@@ -1,3 +1,243 @@
-.completed {
+:host {
+  --task-list-ink: #f8f4ff;
+  --task-list-muted: #c9c0d9;
+  --task-list-blue-black: #0b1020;
+  --task-list-pink: #f3a6db;
+  --task-list-amber: #ffd58a;
+  --task-list-focus: #9ed9ff;
+}
+
+.task-list-header ion-toolbar {
+  --background: linear-gradient(120deg, #090d1c 0%, #16234a 58%, #291c4c 100%);
+  --color: var(--task-list-ink);
+  --min-height: 4.25rem;
+}
+
+.task-list-page {
+  --background: var(--task-list-blue-black);
+  --color: var(--task-list-ink);
+}
+
+.task-list-decoration {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.task-list-moon {
+  background: radial-gradient(circle at 34% 30%, #fff8dd, #aab8ea 58%, transparent 61%);
+  border-radius: 50%;
+  height: 15rem;
+  opacity: 0.08;
+  position: absolute;
+  right: -4.5rem;
+  top: 1rem;
+  width: 15rem;
+}
+
+.task-list-cloud {
+  background: linear-gradient(90deg, #d7d4ff, #91aee5);
+  border-radius: 999px;
+  height: 1.75rem;
+  opacity: 0.06;
+  position: absolute;
+  width: 8.5rem;
+}
+
+.task-list-cloud-primary {
+  left: -2.5rem;
+  top: 15rem;
+}
+
+.task-list-cloud-secondary {
+  bottom: 5rem;
+  right: -3rem;
+}
+
+.task-list-content {
+  align-content: start;
+  box-sizing: border-box;
+  display: grid;
+  gap: 1rem;
+  margin: 0 auto;
+  max-width: 48rem;
+  min-height: 100%;
+  padding: calc(1rem + env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) calc(1.5rem + env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  position: relative;
+  z-index: 1;
+}
+
+.task-list-progress,
+.task-list-empty,
+.task-list-error {
+  background: rgba(33, 24, 63, 0.94);
+  border: 1px solid rgba(158, 217, 255, 0.3);
+}
+
+.task-list-progress {
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.task-list-progress-copy {
+  align-items: baseline;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.task-list-progress-copy p {
+  color: var(--task-list-ink);
+  font-weight: 650;
+  line-height: 1.4;
+  margin: 0 0 0.75rem;
+}
+
+.task-list-progress-copy span {
+  color: var(--task-list-pink);
+  font-weight: 800;
+}
+
+.task-list-progress ion-progress-bar {
+  --background: rgba(248, 244, 255, 0.2);
+  --progress-background: linear-gradient(90deg, var(--task-list-pink), #a795ff);
+  border-radius: 999px;
+  height: 0.5rem;
+  overflow: hidden;
+}
+
+.due-date-filter,
+.task-card {
+  --background: rgba(43, 29, 75, 0.96);
+  --border-color: rgba(201, 192, 217, 0.25);
+  --color: var(--task-list-ink);
+  border: 1px solid rgba(201, 192, 217, 0.25);
+  border-radius: 0.9rem;
+  margin: 0;
+}
+
+.due-date-filter::part(native),
+.task-card::part(native) {
+  border-radius: inherit;
+}
+
+.due-date-filter ion-select {
+  --color: var(--task-list-ink);
+  --placeholder-color: var(--task-list-muted);
+}
+
+.task-list,
+.task-list > ion-item-sliding,
+.task-list > ion-item-sliding > ion-item-options {
+  background: transparent;
+}
+
+.task-list > ion-item-sliding {
+  border-radius: 0.9rem;
+  margin-block-end: 0.5rem;
+  overflow: hidden;
+}
+
+.task-title-row {
+  align-items: start;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.task-overdue-chip {
+  background: rgba(255, 213, 138, 0.16);
+  border: 1px solid var(--task-list-amber);
+  border-radius: 999px;
+  color: var(--task-list-amber);
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0.3rem 0.45rem;
+}
+
+.task-metadata-grid {
+  display: grid;
+  gap: 0.25rem 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0.3rem;
+}
+
+.task-card-action {
+  --color: #fff;
+  flex: 0 0 3.5rem;
+  min-width: 3.5rem;
+}
+
+.task-card-actions {
+  bottom: 0.35rem;
+  top: 0.35rem;
+}
+
+.task-card-actions .task-card-action::part(native) {
+  border-radius: 0.7rem;
+  min-height: 2.75rem;
+}
+
+.task-card-action-edit {
+  --background: #4b356f;
+  --background-activated: #60498c;
+}
+
+.task-card-action-delete {
+  --background: #6b294f;
+  --background-activated: #843963;
+}
+
+.task-title-row h2 {
+  color: var(--task-list-ink);
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.task-card .completed {
+  color: var(--task-list-muted);
   text-decoration: line-through;
+}
+
+.task-metadata {
+  color: var(--task-list-muted);
+  margin: 0.15rem 0 0;
+}
+
+:is(ion-button, ion-checkbox, ion-select, ion-item-option, .task-card, .due-date-filter):focus-within {
+  outline: 3px solid var(--task-list-focus);
+  outline-offset: 3px;
+}
+
+@media (max-width: 20rem) {
+  .task-list-content {
+    gap: 0.75rem;
+    padding-inline: 0.75rem;
+  }
+
+  .task-list-progress-copy {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .task-list-header ion-toolbar {
+    --min-height: 3.75rem;
+  }
+
+  .task-metadata-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
 }

@@ -1,7 +1,7 @@
-<ion-header>
+<ion-header class="task-list-header">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-menu-button></ion-menu-button>
+      <ion-menu-button aria-label="Open menu"></ion-menu-button>
     </ion-buttons>
     <ion-title>{{ pageTitle }}</ion-title>
     <ion-buttons slot="end">
@@ -10,50 +10,83 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
-  <ion-card color="warning" *ngIf="errorMessage">
-    <ion-card-content>
-      <p>{{ errorMessage }}</p>
-      <ion-button fill="clear" (click)="loadTasks()">Retry</ion-button>
-    </ion-card-content>
-  </ion-card>
+<ion-content class="task-list-page">
+  <div class="task-list-decoration" aria-hidden="true">
+    <div class="task-list-moon"></div>
+    <div class="task-list-cloud task-list-cloud-primary"></div>
+    <div class="task-list-cloud task-list-cloud-secondary"></div>
+  </div>
 
-  <ion-item *ngIf="isAllTasksRoute()">
-    <ion-select id="due-date-filter" [(ngModel)]="dueDateFilter" aria-label="Due date">
-      <ion-select-option *ngFor="let option of dueDateFilterOptions" [value]="option.value">
-        {{ option.label }}
-      </ion-select-option>
-    </ion-select>
-  </ion-item>
+  <main class="task-list-content" *ngIf="presentationSnapshot as presentation">
+    <section class="task-list-progress" aria-labelledby="visible-progress-title">
+      <div class="task-list-progress-copy">
+        <p id="visible-progress-title">Visible progress: {{ presentation.progressSummary.completed }} of {{ presentation.progressSummary.total }} completed</p>
+        <span aria-hidden="true">{{ presentation.progressSummary.percentage }}%</span>
+      </div>
+      <ion-progress-bar
+        role="progressbar"
+        aria-label="Visible task progress"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-valuenow]="presentation.progressSummary.percentage"
+        [attr.value]="presentation.progressSummary.value"
+        [value]="presentation.progressSummary.value">
+      </ion-progress-bar>
+    </section>
 
-  <ion-list *ngIf="displayedTasks.length; else emptyState">
-    <ion-item-sliding *ngFor="let task of displayedTasks">
-      <ion-item>
-        <ion-checkbox slot="start" [checked]="task.completed" (ionChange)="toggleTask(task)"></ion-checkbox>
-        <ion-label>
-          <h2 [class.completed]="task.completed">{{ task.title }}</h2>
-          <p>{{ getPriorityLabel(task) }}</p>
-          <p *ngIf="getDueDateLabel(task) as dueDateLabel">{{ dueDateLabel }}</p>
-          <p *ngIf="isTaskOverdue(task)">Overdue</p>
-          <p *ngIf="task.categoryId">Category: {{ getCategoryName(task.categoryId) }}</p>
-          <p *ngIf="!task.categoryId">Uncategorized</p>
-        </ion-label>
-      </ion-item>
-      <ion-item-options side="end">
-        <ion-item-option color="primary" [routerLink]="getTaskEditLink(task)">Edit</ion-item-option>
-        <ion-item-option color="danger" (click)="deleteTask(task)">Delete</ion-item-option>
-      </ion-item-options>
-    </ion-item-sliding>
-  </ion-list>
-
-  <ng-template #emptyState>
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>{{ isFilteredEmptyState() ? 'No tasks match this due-date filter.' : 'No tasks yet' }}</ion-card-title>
-      </ion-card-header>
+    <ion-card class="task-list-error" color="warning" *ngIf="errorMessage">
       <ion-card-content>
-        {{ isFilteredEmptyState() ? 'Try a different due-date filter to see other tasks.' : 'Create a local task to see it here.' }}
+        <p>{{ errorMessage }}</p>
+        <ion-button fill="clear" (click)="loadTasks()">Retry</ion-button>
       </ion-card-content>
     </ion-card>
-  </ng-template>
+
+    <ion-item class="due-date-filter" *ngIf="presentation.isAllTasksRoute">
+      <ion-select id="due-date-filter" [(ngModel)]="dueDateFilter" aria-label="Due date">
+        <ion-select-option *ngFor="let option of dueDateFilterOptions" [value]="option.value">
+          {{ option.label }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-list class="task-list" *ngIf="presentation.displayedTasks.length; else emptyState">
+      <ion-item-sliding *ngFor="let task of presentation.displayedTasks">
+        <ion-item class="task-card" [class.task-card-completed]="task.completed" [class.task-card-overdue]="isTaskOverdue(task)">
+          <ion-checkbox slot="start" [checked]="task.completed" (ionChange)="toggleTask(task)"></ion-checkbox>
+          <ion-label>
+            <div class="task-title-row">
+              <h2 [class.completed]="task.completed">{{ task.title }}</h2>
+              <span class="task-overdue-chip" role="status" *ngIf="isTaskOverdue(task)">Overdue</span>
+            </div>
+            <div class="task-metadata-grid">
+              <div class="task-metadata-column">
+                <p class="task-metadata">{{ getPriorityLabel(task) }}</p>
+                <p class="task-metadata" *ngIf="task.categoryId">Category: {{ getCategoryName(task.categoryId) }}</p>
+                <p class="task-metadata" *ngIf="!task.categoryId">Uncategorized</p>
+              </div>
+              <div class="task-metadata-column">
+                <p class="task-metadata" *ngIf="getDueDateLabel(task) as dueDateLabel">{{ dueDateLabel }}</p>
+                <p class="task-metadata">Status: {{ task.completed ? 'Completed' : 'Open' }}</p>
+              </div>
+            </div>
+          </ion-label>
+        </ion-item>
+        <ion-item-options class="task-card-actions" side="end" [attr.aria-label]="'Task actions for ' + task.title">
+          <ion-item-option class="task-card-action task-card-action-edit" [routerLink]="getTaskEditLink(task)" [attr.aria-label]="'Edit task ' + task.title">Edit</ion-item-option>
+          <ion-item-option class="task-card-action task-card-action-delete" (click)="deleteTask(task)" [attr.aria-label]="'Delete task ' + task.title">Delete</ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+    </ion-list>
+
+    <ng-template #emptyState>
+      <ion-card class="task-list-empty">
+        <ion-card-header>
+          <ion-card-title>{{ presentation.isFilteredEmptyState ? 'No tasks match this due-date filter.' : 'No tasks yet' }}</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          {{ presentation.isFilteredEmptyState ? 'Try a different due-date filter to see other tasks.' : 'Create a local task to see it here.' }}
+        </ion-card-content>
+      </ion-card>
+    </ng-template>
+  </main>
 </ion-content>

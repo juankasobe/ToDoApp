@@ -9,6 +9,20 @@ import { TaskFilter, TaskService } from '../services/task.service';
 type RouteFilterKind = 'all' | 'uncategorized' | 'category';
 export type DueDateFilter = 'all' | 'overdue' | 'today' | 'upcoming' | 'none';
 
+export interface ProgressSummary {
+  total: number;
+  completed: number;
+  percentage: number;
+  value: number;
+}
+
+export interface TaskListPresentation {
+  displayedTasks: Task[];
+  progressSummary: ProgressSummary;
+  isAllTasksRoute: boolean;
+  isFilteredEmptyState: boolean;
+}
+
 @Component({
   selector: 'app-task-list',
   templateUrl: './task-list.page.html',
@@ -64,6 +78,21 @@ export class TaskListPage {
 
       return task.dueDate > today;
     });
+  }
+
+  get progressSummary(): ProgressSummary {
+    return this.createProgressSummary(this.displayedTasks);
+  }
+
+  get presentationSnapshot(): TaskListPresentation {
+    const displayedTasks = this.displayedTasks;
+
+    return {
+      displayedTasks,
+      progressSummary: this.createProgressSummary(displayedTasks),
+      isAllTasksRoute: this.isAllTasksRoute(),
+      isFilteredEmptyState: this.tasks.length > 0 && displayedTasks.length === 0,
+    };
   }
 
   async ionViewWillEnter(): Promise<void> {
@@ -159,6 +188,14 @@ export class TaskListPage {
     }
 
     return { kind: 'all' };
+  }
+
+  private createProgressSummary(displayedTasks: Task[]): ProgressSummary {
+    const total = displayedTasks.length;
+    const completed = displayedTasks.filter((task) => task.completed).length;
+    const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+    return { total, completed, percentage, value: percentage / 100 };
   }
 
   private resolveTitle(filter: TaskFilter): string {
