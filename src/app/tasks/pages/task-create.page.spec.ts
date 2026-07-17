@@ -58,6 +58,125 @@ describe('TaskCreatePage', () => {
     expect(page.errorMessage).toBe('');
   });
 
+  it('renders a named form with labeled title, category, due-date, feedback, and action regions', async () => {
+    const fixture = TestBed.createComponent(TaskCreatePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+
+    const form = fixture.nativeElement.querySelector('form[aria-label="Task details"]');
+    expect(form).not.toBeNull();
+    expect(form.querySelector('fieldset[aria-label="Title"] ion-input[placeholder="Task title"]')).not.toBeNull();
+    expect(form.querySelector('fieldset[aria-label="Category and priority"] ion-select')).not.toBeNull();
+    expect(form.querySelector('fieldset[aria-label="Due date"] #due-date-input')).not.toBeNull();
+    expect(form.querySelector('[role="group"][aria-label="Form feedback"]')).not.toBeNull();
+    expect(form.querySelector('[role="group"][aria-label="Form actions"] ion-button[expand="block"]')).not.toBeNull();
+  });
+
+  it('keeps real moon and cloud decoration inert while retaining the form controls', async () => {
+    const fixture = TestBed.createComponent(TaskCreatePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const decoration = fixture.nativeElement.querySelector('.task-form-decoration[aria-hidden="true"]');
+    const form = fixture.nativeElement.querySelector('form[aria-label="Task details"]');
+    const focusableDecorationElements = decoration.querySelectorAll(
+      'a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+
+    expect(decoration.querySelector('.task-form-moon')).not.toBeNull();
+    expect(decoration.querySelectorAll('.task-form-cloud').length).toBe(2);
+    expect(focusableDecorationElements.length).toBe(0);
+    expect(form.querySelector('fieldset[aria-label="Title"] ion-input[placeholder="Task title"]')).not.toBeNull();
+    expect(form.querySelector('fieldset[aria-label="Category and priority"] #priority-select')).not.toBeNull();
+    expect(form.querySelector('fieldset[aria-label="Due date"] #due-date-input')).not.toBeNull();
+  });
+
+  it('keeps decoration hidden and the edit save action reachable in edit mode', async () => {
+    paramMap.set('taskId', 'task-1');
+    taskService.getById.and.resolveTo({
+      id: 'task-1', title: 'Buy milk', completed: false, categoryId: null,
+      createdAt: '2026-07-09T20:00:00.000Z', priority: 'medium', dueDate: null,
+    });
+    const fixture = TestBed.createComponent(TaskCreatePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const decoration = fixture.nativeElement.querySelector('.task-form-decoration[aria-hidden="true"]');
+    const form = fixture.nativeElement.querySelector('form[aria-label="Task details"]');
+
+    expect(decoration.querySelectorAll('.task-form-moon, .task-form-cloud').length).toBe(3);
+    expect(decoration.querySelectorAll('button, [tabindex]:not([tabindex="-1"])').length).toBe(0);
+    expect(form.querySelector('[role="group"][aria-label="Form actions"] ion-button').textContent)
+      .toContain('Save Changes');
+  });
+
+  it('keeps form hooks and announces unchanged error and retry feedback', async () => {
+    categoryService.list.and.rejectWith(new Error('category-load-failed'));
+    const fixture = TestBed.createComponent(TaskCreatePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+
+    const form = fixture.nativeElement.querySelector('form[aria-label="Task details"]');
+    const feedback = form.querySelector('[role="group"][aria-label="Form feedback"]');
+    const alert = feedback.querySelector('[role="alert"][aria-live="assertive"]');
+    expect(form.querySelector('ion-input[placeholder="Task title"]')).not.toBeNull();
+    expect(form.querySelector('ion-select:not(#priority-select)')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#priority-select')).not.toBeNull();
+    expect(form.querySelector('#due-date-input[type="date"]')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Clear due date');
+    expect(alert.textContent).toContain('Categories could not be loaded. Try again.');
+    expect(fixture.nativeElement.textContent).toContain('Retry');
+    expect(form.querySelector('ion-button[expand="block"]')?.textContent).toContain('Save Task');
+    expect(fixture.nativeElement.querySelector('ion-back-button[defaultHref="/tasks"]')).not.toBeNull();
+  });
+
+  it('announces a save validation error, then lets the user correct it and save from the rendered form', async () => {
+    taskService.create.and.returnValues(
+      Promise.reject(new Error('empty-title')),
+      Promise.resolve({
+        id: 'task-1', title: 'Plan workout', completed: false, categoryId: null,
+        createdAt: '2026-07-09T20:00:00.000Z', priority: 'medium', dueDate: null,
+      }),
+    );
+    const fixture = TestBed.createComponent(TaskCreatePage);
+    const component = fixture.componentInstance;
+    await component.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const form = fixture.nativeElement.querySelector('form[aria-label="Task details"]');
+    const titleInput = form.querySelector('ion-input[placeholder="Task title"]');
+    const saveButton = form.querySelector('[role="group"][aria-label="Form actions"] ion-button');
+    saveButton.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(form.querySelector('[role="alert"]')?.textContent).toContain('Enter a task title.');
+    expect(fixture.nativeElement.querySelector('ion-back-button[defaultHref="/tasks"]')).not.toBeNull();
+
+    titleInput.value = 'Plan workout';
+    titleInput.dispatchEvent(new CustomEvent('ionInput', { bubbles: true }));
+    fixture.detectChanges();
+    saveButton.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(taskService.create).toHaveBeenCalledWith({
+      title: 'Plan workout', categoryId: null, priority: 'medium', dueDate: null,
+    });
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/tasks');
+    expect(form.querySelector('[role="alert"]')).toBeNull();
+  });
+
   it('creates a task with the selected category and returns to all tasks', async () => {
     taskService.create.and.resolveTo({
       id: 'task-1',
@@ -376,6 +495,8 @@ describe('TaskCreatePage', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Categories could not be loaded. Try again.');
     expect(fixture.nativeElement.textContent).toContain('Retry');
+    expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent)
+      .toContain('Categories could not be loaded. Try again.');
     expect(component.title).toBe('');
     expect(component.categoryId).toBeNull();
     expect(component.priority).toBe('medium');
@@ -387,6 +508,10 @@ describe('TaskCreatePage', () => {
 
     expect(component.categories).toEqual([{ id: 'health', name: 'Health', createdAt: '2026-07-09T20:00:00.000Z' }]);
     expect(component.errorMessage).toBe('');
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('ion-button[aria-label="Retry category loading"]')).toBeNull();
+    expect(Array.from<Element>(fixture.nativeElement.querySelectorAll('ion-select-option'))
+      .map((option) => option.textContent?.trim())).toContain('Health');
   });
 
   it('shows a safe message when priority validation rejects a save', async () => {

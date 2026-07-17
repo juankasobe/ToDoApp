@@ -1,49 +1,69 @@
 <ion-header>
   <ion-toolbar>
-    <ion-buttons slot="start">
+    <ion-buttons slot="start" aria-label="Task navigation">
       <ion-back-button defaultHref="/tasks"></ion-back-button>
     </ion-buttons>
     <ion-title>{{ pageTitle }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <ion-item>
-    <ion-label position="stacked">Title</ion-label>
-    <ion-input [(ngModel)]="title" placeholder="Task title"></ion-input>
-  </ion-item>
+<ion-content class="ion-padding task-form-content">
+  <div class="task-form-decoration" aria-hidden="true">
+    <span class="task-form-moon"></span>
+    <span class="task-form-cloud task-form-cloud-primary"></span>
+    <span class="task-form-cloud task-form-cloud-secondary"></span>
+  </div>
 
-  <ion-item>
-    <ion-label position="stacked">Category</ion-label>
-    <ion-select [(ngModel)]="categoryId" placeholder="Uncategorized">
-      <ion-select-option [value]="null">Uncategorized</ion-select-option>
-      <ion-select-option *ngFor="let category of categories" [value]="category.id">
-        {{ category.name }}
-      </ion-select-option>
-    </ion-select>
-  </ion-item>
+  <form class="task-form" aria-label="Task details">
+    <fieldset aria-label="Title">
+      <ion-item>
+        <ion-label position="stacked">Title</ion-label>
+        <ion-input name="title" [(ngModel)]="title" placeholder="Task title"></ion-input>
+      </ion-item>
+    </fieldset>
 
-  <ion-item>
-    <ion-label position="stacked">Priority</ion-label>
-    <ion-select id="priority-select" [(ngModel)]="priority" aria-label="Priority">
-      <ion-select-option *ngFor="let priorityOption of taskPriorities" [value]="priorityOption">
-        {{ priorityOption }}
-      </ion-select-option>
-    </ion-select>
-  </ion-item>
+    <fieldset aria-label="Category and priority">
+      <ion-item>
+        <ion-label position="stacked">Category</ion-label>
+        <ion-select name="categoryId" [(ngModel)]="categoryId" placeholder="Uncategorized">
+          <ion-select-option [value]="null">Uncategorized</ion-select-option>
+          <ion-select-option *ngFor="let category of categories" [value]="category.id">
+            {{ category.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
 
-  <ion-item>
-    <ion-label position="stacked">Due date</ion-label>
-    <ion-input id="due-date-input" type="date" [(ngModel)]="dueDate"></ion-input>
-  </ion-item>
-  <ion-button fill="clear" aria-label="Clear due date" (click)="clearDueDate()">
-    Clear due date
-  </ion-button>
+      <ion-item>
+        <ion-label position="stacked">Priority</ion-label>
+        <ion-select id="priority-select" name="priority" [(ngModel)]="priority" aria-label="Priority">
+          <ion-select-option *ngFor="let priorityOption of taskPriorities" [value]="priorityOption">
+            {{ priorityOption }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+    </fieldset>
 
-  <ion-note color="danger" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
-  <ion-button *ngIf="canRetryCategoryLoad" fill="clear" aria-label="Retry category loading" (click)="retryCategoryLoad()">
-    Retry
-  </ion-button>
+    <fieldset aria-label="Due date">
+      <ion-item>
+        <ion-label position="stacked">Due date</ion-label>
+        <ion-input id="due-date-input" name="dueDate" type="date" [(ngModel)]="dueDate"></ion-input>
+      </ion-item>
+      <ion-button fill="clear" aria-label="Clear due date" (click)="clearDueDate()">
+        Clear due date
+      </ion-button>
+    </fieldset>
 
-  <ion-button expand="block" (click)="save()">{{ saveButtonLabel }}</ion-button>
+    <section role="group" aria-label="Form feedback">
+      <ion-note color="danger" role="alert" aria-live="assertive" aria-atomic="true" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </ion-note>
+      <ion-button *ngIf="canRetryCategoryLoad" fill="clear" aria-label="Retry category loading" (click)="retryCategoryLoad()">
+        Retry
+      </ion-button>
+    </section>
+
+    <section role="group" aria-label="Form actions">
+      <ion-button expand="block" (click)="save()">{{ saveButtonLabel }}</ion-button>
+    </section>
+  </form>
 </ion-content>
