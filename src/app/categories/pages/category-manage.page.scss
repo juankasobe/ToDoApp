@@ -2,6 +2,16 @@
   display: block;
 }
 
+.category-manage-header ion-toolbar {
+  --background: linear-gradient(120deg, #090d1c 0%, #16234a 58%, #291c4c 100%);
+  --border-color: transparent;
+  --color: #f8f4ff;
+}
+
+.category-manage-header ion-menu-button {
+  --color: #f8f4ff;
+}
+
 ion-content {
   --background: radial-gradient(circle at 82% 2%, #35235f 0, transparent 28rem), #090717;
   --padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
