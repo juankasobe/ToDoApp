@@ -46,6 +46,12 @@ describe('TaskListPage', () => {
     return TestBed.inject(TaskListPage);
   }
 
+  function getCompiledTaskListStyles(): string {
+    return Array.from(document.head.querySelectorAll('style'))
+      .map((style) => style.textContent ?? '')
+      .find((styles) => styles.includes('--task-list-blue-black')) ?? '';
+  }
+
   it('loads all tasks for the all-tasks route', async () => {
     const page = createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
 
@@ -187,6 +193,335 @@ describe('TaskListPage', () => {
 
     page.dueDateFilter = 'none';
     expect(page.displayedTasks.map((task) => task.id)).toEqual(['none-newest']);
+  });
+
+  it('derives visible progress from the all-route displayed collection, including a due-date filter and no matches', async () => {
+    const page = createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    spyOn(page, 'localToday').and.returnValue('2026-07-15');
+    service.list.and.resolveTo([
+      { id: 'today-complete', title: 'Today complete', completed: true, categoryId: null, createdAt: '2026-07-15T12:00:00.000Z', priority: 'high', dueDate: '2026-07-15' },
+      { id: 'today-open', title: 'Today open', completed: false, categoryId: null, createdAt: '2026-07-14T12:00:00.000Z', priority: 'medium', dueDate: '2026-07-15' },
+      { id: 'upcoming-open', title: 'Upcoming open', completed: false, categoryId: null, createdAt: '2026-07-13T12:00:00.000Z', priority: 'low', dueDate: '2026-07-16' },
+    ]);
+
+    await page.ionViewWillEnter();
+
+    expect(page.progressSummary).toEqual({ total: 3, completed: 1, percentage: 33, value: 0.33 });
+
+    page.dueDateFilter = 'today';
+    expect(page.progressSummary).toEqual({ total: 2, completed: 1, percentage: 50, value: 0.5 });
+
+    page.dueDateFilter = 'none';
+    expect(page.progressSummary).toEqual({ total: 0, completed: 0, percentage: 0, value: 0 });
+  });
+
+  it('derives visible progress from every task on a scoped route regardless of the all-route due-date filter', async () => {
+    const page = createPage({
+      snapshot: {
+        data: { filterKind: 'category' },
+        paramMap: new Map([['categoryId', 'home']]),
+      } as never,
+    });
+    service.list.and.resolveTo([
+      { id: 'complete', title: 'Complete', completed: true, categoryId: 'home', createdAt: '2026-07-15T12:00:00.000Z', priority: 'high', dueDate: '2026-07-14' },
+      { id: 'open', title: 'Open', completed: false, categoryId: 'home', createdAt: '2026-07-14T12:00:00.000Z', priority: 'low', dueDate: null },
+    ]);
+
+    await page.ionViewWillEnter();
+    page.dueDateFilter = 'none';
+
+    expect(page.progressSummary).toEqual({ total: 2, completed: 1, percentage: 50, value: 0.5 });
+  });
+
+  it('creates one deterministic presentation snapshot for the currently displayed tasks and progress', async () => {
+    const page = createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    spyOn(page, 'localToday').and.returnValue('2026-07-15');
+    service.list.and.resolveTo([
+      { id: 'today-complete', title: 'Today complete', completed: true, categoryId: null, createdAt: '2026-07-15T12:00:00.000Z', priority: 'high', dueDate: '2026-07-15' },
+      { id: 'upcoming-open', title: 'Upcoming open', completed: false, categoryId: null, createdAt: '2026-07-14T12:00:00.000Z', priority: 'low', dueDate: '2026-07-16' },
+    ]);
+
+    await page.ionViewWillEnter();
+    page.dueDateFilter = 'today';
+
+    const snapshot = page.presentationSnapshot;
+
+    expect(snapshot.displayedTasks.map((task) => task.id)).toEqual(['today-complete']);
+    expect(snapshot.progressSummary).toEqual({ total: 1, completed: 1, percentage: 100, value: 1 });
+  });
+
+  it('keeps compact, focus, and reduced-motion rules in the compiled task-list stylesheet', () => {
+    createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    const fixture = TestBed.createComponent(TaskListPage);
+    fixture.detectChanges();
+
+    const styles = getCompiledTaskListStyles();
+
+    expect(styles).toMatch(/@media\s*\(max-width:\s*20rem\)[\s\S]*?\.task-list-content[\s\S]*?padding-inline:\s*0\.75rem/);
+    expect(styles).toMatch(/:is\(ion-button,\s*ion-checkbox,\s*ion-select,\s*ion-item-option,\s*\.task-card,\s*\.due-date-filter\):focus-within[\s\S]*?outline:\s*3px solid var\(--task-list-focus\)/);
+    expect(styles).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*?animation:\s*none !important[\s\S]*?transition:\s*none !important/);
+  });
+
+  it('renders semantic visible progress and pointer-isolated moon and cloud decoration', async () => {
+    createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    service.list.and.resolveTo([
+      { id: 'complete', title: 'Complete', completed: true, categoryId: null, createdAt: '2026-07-15T12:00:00.000Z', priority: 'high', dueDate: null },
+      { id: 'open', title: 'Open', completed: false, categoryId: null, createdAt: '2026-07-14T12:00:00.000Z', priority: 'low', dueDate: null },
+    ]);
+    const fixture = TestBed.createComponent(TaskListPage);
+
+    await fixture.componentInstance.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const decoration = fixture.nativeElement.querySelector('.task-list-decoration');
+    const progressBar = fixture.nativeElement.querySelector('ion-progress-bar');
+
+    expect(fixture.nativeElement.textContent).toContain('Visible progress: 1 of 2 completed');
+    expect(progressBar.getAttribute('aria-label')).toBe('Visible task progress');
+    expect(progressBar.getAttribute('aria-valuemin')).toBe('0');
+    expect(progressBar.getAttribute('aria-valuemax')).toBe('100');
+    expect(progressBar.getAttribute('aria-valuenow')).toBe('50');
+    expect(progressBar.getAttribute('value')).toBe('0.5');
+    expect(decoration.getAttribute('aria-hidden')).toBe('true');
+    expect(decoration.hasAttribute('tabindex')).toBeFalse();
+    expect(decoration.querySelector('.task-list-moon')).not.toBeNull();
+    expect(decoration.querySelector('.task-list-cloud')).not.toBeNull();
+  });
+
+  it('renders one visible progress percentage while keeping the semantic progress value', async () => {
+    createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    service.list.and.resolveTo([
+      { id: 'complete', title: 'Complete', completed: true, categoryId: null, createdAt: '2026-07-15T12:00:00.000Z', priority: 'high', dueDate: null },
+      { id: 'open', title: 'Open', completed: false, categoryId: null, createdAt: '2026-07-14T12:00:00.000Z', priority: 'low', dueDate: null },
+    ]);
+    const fixture = TestBed.createComponent(TaskListPage);
+
+    await fixture.componentInstance.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const progress = fixture.nativeElement.querySelector('[aria-labelledby="visible-progress-title"]');
+    const progressBar = fixture.nativeElement.querySelector('ion-progress-bar');
+
+    expect(progress.textContent).toContain('Visible progress: 1 of 2 completed');
+    expect(progress.textContent.match(/50%/g)?.length).toBe(1);
+    expect(progressBar.getAttribute('aria-valuenow')).toBe('50');
+  });
+
+  it('keeps overdue text beside the task heading and groups the full metadata in two columns', async () => {
+    createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    service.list.and.resolveTo([
+      { id: 'overdue', title: 'Past due', completed: false, categoryId: 'home', createdAt: '2026-07-10T12:00:00.000Z', priority: 'high', dueDate: '2026-07-14' },
+    ]);
+    const fixture = TestBed.createComponent(TaskListPage);
+    spyOn(fixture.componentInstance, 'localToday').and.returnValue('2026-07-15');
+
+    await fixture.componentInstance.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const heading = fixture.nativeElement.querySelector('h2');
+    const titleRow = heading.parentElement;
+    const overdue = titleRow.querySelector('[role="status"]');
+    const metadata = titleRow.nextElementSibling;
+
+    expect(heading.textContent.trim()).toBe('Past due');
+    expect(overdue.textContent.trim()).toBe('Overdue');
+    expect(metadata.children.length).toBe(2);
+    expect(metadata.children[0].textContent).toContain('Priority: high');
+    expect(metadata.children[0].textContent).toContain('Category: Home');
+    expect(metadata.children[1].textContent).toContain('Due: 2026-07-14');
+    expect(metadata.children[1].textContent).toContain('Status: Open');
+  });
+
+  it('keeps completion and uncategorized metadata visible without an overdue status', async () => {
+    createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    service.list.and.resolveTo([
+      { id: 'complete', title: 'Finished', completed: true, categoryId: null, createdAt: '2026-07-10T12:00:00.000Z', priority: 'low', dueDate: null },
+    ]);
+    const fixture = TestBed.createComponent(TaskListPage);
+
+    await fixture.componentInstance.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const heading = fixture.nativeElement.querySelector('h2');
+    const titleRow = heading.parentElement;
+    const metadata = titleRow.nextElementSibling;
+
+    expect(titleRow.querySelector('[role="status"]')).toBeNull();
+    expect(metadata.children.length).toBe(2);
+    expect(metadata.children[0].textContent).toContain('Priority: low');
+    expect(metadata.children[0].textContent).toContain('Uncategorized');
+    expect(metadata.children[1].textContent).toContain('Status: Completed');
+  });
+
+  it('gives each retained swipe action group a descriptive accessible name', async () => {
+    createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    const fixture = TestBed.createComponent(TaskListPage);
+
+    await fixture.componentInstance.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const actions = fixture.nativeElement.querySelector('ion-item-options');
+
+    expect(actions.getAttribute('aria-label')).toBe('Task actions for Buy milk');
+    expect(actions.querySelectorAll('ion-item-option').length).toBe(2);
+  });
+
+  it('renders labeled edit and destructive delete sliding actions for each visible task', async () => {
+    createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    const fixture = TestBed.createComponent(TaskListPage);
+
+    await fixture.componentInstance.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const actions = fixture.nativeElement.querySelectorAll('ion-item-options ion-item-option');
+
+    expect(actions.length).toBe(2);
+    expect(actions[0].getAttribute('aria-label')).toBe('Edit task Buy milk');
+    expect(actions[0].textContent.trim()).toBe('Edit');
+    expect(actions[1].getAttribute('aria-label')).toBe('Delete task Buy milk');
+    expect(actions[1].textContent.trim()).toBe('Delete');
+  });
+
+  it('labels sliding actions from each rendered task title', async () => {
+    createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    service.list.and.resolveTo([
+      { id: 'first', title: 'Plan release', completed: false, categoryId: null, createdAt: '2026-07-15T12:00:00.000Z', priority: 'high', dueDate: null },
+      { id: 'second', title: 'Review notes', completed: false, categoryId: null, createdAt: '2026-07-14T12:00:00.000Z', priority: 'low', dueDate: null },
+    ]);
+    const fixture = TestBed.createComponent(TaskListPage);
+
+    await fixture.componentInstance.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const actionLabels = Array.from<HTMLElement>(fixture.nativeElement.querySelectorAll('ion-item-options ion-item-option'))
+      .map((action) => action.getAttribute('aria-label'));
+
+    expect(actionLabels).toEqual([
+      'Edit task Plan release',
+      'Delete task Plan release',
+      'Edit task Review notes',
+      'Delete task Review notes',
+    ]);
+  });
+
+  it('renders a transparent task list with separated cards and palette-owned swipe actions', async () => {
+    createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    service.list.and.resolveTo([
+      { id: 'first', title: 'Plan release', completed: false, categoryId: null, createdAt: '2026-07-15T12:00:00.000Z', priority: 'high', dueDate: null },
+      { id: 'second', title: 'Review notes', completed: false, categoryId: null, createdAt: '2026-07-14T12:00:00.000Z', priority: 'low', dueDate: null },
+    ]);
+    const fixture = TestBed.createComponent(TaskListPage);
+
+    await fixture.componentInstance.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const list = fixture.nativeElement.querySelector('ion-list');
+    const cards = fixture.nativeElement.querySelectorAll('ion-item-sliding');
+    const actions = fixture.nativeElement.querySelectorAll('ion-item-option');
+
+    expect(getComputedStyle(list).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(cards.length).toBe(2);
+    expect(getComputedStyle(cards[0]).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(getComputedStyle(cards[1]).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    expect(getComputedStyle(cards[0]).marginBlockEnd).toBe('8px');
+    expect(getComputedStyle(cards[1]).marginBlockEnd).toBe('8px');
+    expect(actions[0].getAttribute('color')).toBeNull();
+    expect(actions[1].getAttribute('color')).toBeNull();
+    expect(getComputedStyle(actions[0]).minWidth).toBe('56px');
+    expect(getComputedStyle(actions[1]).minWidth).toBe('56px');
+    expect(getComputedStyle(actions[0]).getPropertyValue('--background').trim()).toBe('#4b356f');
+    expect(getComputedStyle(actions[1]).getPropertyValue('--background').trim()).toBe('#6b294f');
+  });
+
+  it('keeps a single task swipe action pair compact and palette-owned', async () => {
+    createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    const fixture = TestBed.createComponent(TaskListPage);
+
+    await fixture.componentInstance.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const actions = fixture.nativeElement.querySelectorAll('ion-item-option');
+
+    expect(actions.length).toBe(2);
+    expect(actions[0].getAttribute('aria-label')).toBe('Edit task Buy milk');
+    expect(actions[1].getAttribute('aria-label')).toBe('Delete task Buy milk');
+    expect(getComputedStyle(actions[0]).minWidth).toBe('56px');
+    expect(getComputedStyle(actions[1]).minWidth).toBe('56px');
+    expect(getComputedStyle(actions[0]).getPropertyValue('--background').trim()).toBe('#4b356f');
+    expect(getComputedStyle(actions[1]).getPropertyValue('--background').trim()).toBe('#6b294f');
+  });
+
+  it('renders zero progress while retaining the filtered empty-state copy', async () => {
+    createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    service.list.and.resolveTo([
+      { id: 'today', title: 'Today', completed: false, categoryId: null, createdAt: '2026-07-15T12:00:00.000Z', priority: 'medium', dueDate: '2026-07-15' },
+    ]);
+    const fixture = TestBed.createComponent(TaskListPage);
+    spyOn(fixture.componentInstance, 'localToday').and.returnValue('2026-07-15');
+
+    await fixture.componentInstance.ionViewWillEnter();
+    fixture.componentInstance.dueDateFilter = 'upcoming';
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const progressBar = fixture.nativeElement.querySelector('ion-progress-bar');
+    expect(fixture.nativeElement.textContent).toContain('Visible progress: 0 of 0 completed');
+    expect(fixture.nativeElement.textContent).toContain('No tasks match this due-date filter.');
+    expect(progressBar.getAttribute('aria-valuenow')).toBe('0');
+    expect(progressBar.getAttribute('value')).toBe('0');
+  });
+
+  it('keeps the mobile content grid packed when an upcoming filter has no matching tasks', async () => {
+    createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    service.list.and.resolveTo([
+      { id: 'today', title: 'Today', completed: false, categoryId: null, createdAt: '2026-07-15T12:00:00.000Z', priority: 'medium', dueDate: '2026-07-15' },
+    ]);
+    const fixture = TestBed.createComponent(TaskListPage);
+    spyOn(fixture.componentInstance, 'localToday').and.returnValue('2026-07-15');
+
+    await fixture.componentInstance.ionViewWillEnter();
+    fixture.componentInstance.dueDateFilter = 'upcoming';
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const content = fixture.nativeElement.querySelector('.task-list-content');
+    expect(fixture.nativeElement.textContent).toContain('No tasks match this due-date filter.');
+    expect(getComputedStyle(content).alignContent).toBe('start');
+  });
+
+  it('keeps the mobile content grid packed for the global empty state', async () => {
+    createPage({ snapshot: { data: { filterKind: 'all' }, paramMap: new Map() } as never });
+    service.list.and.resolveTo([]);
+    const fixture = TestBed.createComponent(TaskListPage);
+
+    await fixture.componentInstance.ionViewWillEnter();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const content = fixture.nativeElement.querySelector('.task-list-content');
+    expect(fixture.nativeElement.textContent).toContain('No tasks yet');
+    expect(getComputedStyle(content).alignContent).toBe('start');
   });
 
   it('applies overdue, today, and upcoming boundaries correctly across a month and year transition', async () => {
