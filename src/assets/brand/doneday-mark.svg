@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">DoneDay moon and check mark</title>
+  <desc id="description">A golden crescent moon embracing a white completed-task check on a deep navy background.</desc>
+  <rect width="512" height="512" rx="112" fill="#161B33"/>
+  <path d="M318 76c-92 0-167 75-167 167s75 167 167 167c34 0 66-10 93-28-21 47-68 80-123 80-75 0-136-61-136-136S213 190 288 190c11 0 21 1 30 4-24-31-54-66-80-99 25-12 52-19 80-19Z" fill="#F8C454"/>
+  <path d="m206 274 36 37 78-91" fill="none" stroke="#FFFDF7" stroke-linecap="round" stroke-linejoin="round" stroke-width="34"/>
+</svg>

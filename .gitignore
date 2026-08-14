@@ -25,6 +25,7 @@ log.txt
 
 # Android local SDK path
 /android/local.properties
+/android/.gradlew-lf-*
 
 # Compiled output
 /dist
@@ -71,3 +72,7 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Local development tooling
+/.atl/
+/.codegraph/

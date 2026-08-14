@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title id="title">DoneDay moon and checkmark</title>
+  <defs>
+    <linearGradient id="background" x1="120" y1="80" x2="900" y2="960" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111936"/>
+      <stop offset="0.58" stop-color="#291B4A"/>
+      <stop offset="1" stop-color="#5B347E"/>
+    </linearGradient>
+    <linearGradient id="moon" x1="250" y1="170" x2="710" y2="700" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5D0FE"/>
+      <stop offset="0.55" stop-color="#C084FC"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="check" x1="390" y1="520" x2="735" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDE68A"/>
+      <stop offset="1" stop-color="#F472B6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#background)"/>
+  <circle cx="512" cy="512" r="350" fill="#A78BFA" opacity="0.12"/>
+  <path d="M650 214c-202 0-366 164-366 366 0 202 164 366 366 366 62 0 120-16 171-43-44 17-92 26-143 26-215 0-389-174-389-389 0-130 64-245 162-316 55-40 123-64 199-64Z" fill="url(#moon)"/>
+  <path d="m390 570 93 93 177-201" fill="none" stroke="url(#check)" stroke-linecap="round" stroke-linejoin="round" stroke-width="76"/>
+  <circle cx="777" cy="285" r="18" fill="#FDE68A" opacity="0.8"/>
+  <circle cx="809" cy="354" r="10" fill="#F5D0FE" opacity="0.7"/>
+</svg>

@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.personaltodo.app',
-  appName: 'PersonalTo-DO',
+  appName: 'DoneDay',
   webDir: 'www'
 };
 

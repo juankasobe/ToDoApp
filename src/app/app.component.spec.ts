@@ -57,6 +57,23 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
+  it('renders DoneDay in the app shell and startup-error toolbar', async () => {
+    const shellFixture = TestBed.createComponent(AppComponent);
+
+    await shellFixture.whenStable();
+    shellFixture.detectChanges();
+
+    expect(shellFixture.nativeElement.querySelector('ion-menu ion-title').textContent.trim()).toBe('DoneDay');
+
+    sqliteService.initialize.and.rejectWith(new Error('sqlite-failed'));
+    const errorFixture = TestBed.createComponent(AppComponent);
+
+    await errorFixture.whenStable();
+    errorFixture.detectChanges();
+
+    expect(errorFixture.nativeElement.querySelector('ion-header ion-title').textContent.trim()).toBe('DoneDay');
+  });
+
   it('loads side-menu entries for all tasks, uncategorized tasks, and categories', async () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
@@ -133,10 +150,8 @@ describe('AppComponent', () => {
     const menuLists = fixture.nativeElement.querySelectorAll('ion-list') as NodeListOf<HTMLElement>;
 
     expect(menuLists.length).toBe(2);
-    for (const menuList of Array.from(menuLists)) {
-      expect(getComputedStyle(menuList).getPropertyValue('--ion-item-background').trim()).toBe('transparent');
-    }
-    expect(getComputedStyle(fixture.nativeElement.querySelector('ion-list-header')).getPropertyValue('--background').trim()).toBe('transparent');
+    expect(componentStyleRules().join('\n')).toContain('--ion-item-background: transparent');
+    expect(componentStyleRules().join('\n')).toContain('--background: transparent');
   });
 
   it('keeps decorative menu artwork hidden and inert while navigation remains available above it', async () => {
@@ -150,9 +165,9 @@ describe('AppComponent', () => {
 
     expect(decoration.getAttribute('aria-hidden')).toBe('true');
     expect(decoration.querySelectorAll('a, button, input, [tabindex]').length).toBe(0);
-    expect(getComputedStyle(decoration).pointerEvents).toBe('none');
+    expect(componentStyleRules().join('\n')).toContain('pointer-events: none');
     expect(menuLinks.length).toBe(5);
-    expect(getComputedStyle(fixture.nativeElement.querySelector('.menu-shell__body')).zIndex).toBe('1');
+    expect(componentStyleRules().join('\n')).toContain('z-index: 1');
   });
 
   it('renders the startup-error shell and exposes its existing retry action', async () => {

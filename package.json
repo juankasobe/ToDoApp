@@ -15,7 +15,8 @@
     "build:ionic": "ionic build",
     "android:add": "cap add android",
     "android:sync": "cap sync android",
-    "android:open": "cap open android"
+    "android:open": "cap open android",
+    "android:build:debug": "npm run build && npm run android:sync && node scripts/run-android-gradle.mjs assembleDebug"
   },
   "private": true,
   "dependencies": {
